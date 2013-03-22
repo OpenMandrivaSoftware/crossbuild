@@ -158,6 +158,11 @@ cat >macros <<EOF
 %optflags -O2	$CPUFLAGS -fomit-frame-pointer -fweb -frename-registers -Wl,-O2,-z,combreloc,-z,relro,--enable-new-dtags,--hash-style=gnu -g
 EOF
 
+if echo $TARGET |grep -qE '(64|s390x|ia32e)-'; then
+	echo >>macros
+	echo '%_lib	lib64' >>macros
+fi
+
 # This is a bit ugly, since RPM platforms are only a CPU-OS combo.
 # This is often not sufficient (arm-mandriva-linux-gnueabi vs.
 # arm-mandriva-linux-uclibc vs. arm-mandriva-linux-androideabi)...
