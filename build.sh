@@ -445,6 +445,11 @@ EOF
 if echo $TARGET |grep -qE '(64|s390x|ia32e)-'; then
 	echo >>macros
 	echo '%_lib	lib64' >>macros
+	# Since we aren't building multi-arch sysroots (for now),
+	# make lib and lib64 the same -- compilers tend not to
+	# look in lib64 inside a sysroot (e.g. aarch64, gcc 4.7.x)
+	ln -s lib $SYSROOT/lib64
+	ln -s lib $SYSROOT/$USR/lib64
 fi
 
 # This is a bit ugly, since RPM platforms are only a CPU-OS combo.
