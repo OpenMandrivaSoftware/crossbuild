@@ -114,7 +114,7 @@ mkdir $rpm_path
 
 config_name="openmandriva-$platform_arch.cfg"
 config_dir=/etc/mock-urpm/
-sudo echo "armv7l-mandriva-linux-gnueabi" >> /etc/rpm/platform
+sudo sh -c "echo 'armv7l-mandriva-linux-gnueabi' > /etc/rpm/platform"
 
 # Init config file
 default_cfg=$rpm_build_script_path/configs/default.cfg
@@ -152,16 +152,12 @@ sudo ln -s $default_cfg $config_dir/default.cfg
 #mount
 #echo '--> Mount in arm chroot end test'
 echo "--> Create chroot"
-sudo /usr/sbin/urpmi.addmedia --urpmi-root /home/fedya/cross/rootfs/ local-arm file://home/fedya/repo/ && sudo /usr/sbin/urpmi --noscripts --no-suggests --no-verify-rpm --ignorearch --root /home/fedya/cross/rootfs/ --urpmi-root /home/fedya/cross/rootfs/ --auto basesystem-minimal rpm-build make urpmi
+sudo /usr/sbin/urpmi.addmedia --urpmi-root /home/fedya/cross/rootfs/ local-arm http://192.168.0.206/ && sudo /usr/sbin/urpmi --noscripts --no-suggests --no-verify-rpm --ignorearch --root /home/fedya/cross/rootfs/ --urpmi-root /home/fedya/cross/rootfs/ --auto basesystem-minimal rpm-build make urpmi
 sudo cp /home/fedya/arm-scripts/build-packages/qemu* /home/fedya/cross/rootfs/usr/bin/
 sudo cp /etc/resolv.conf /home/fedya/cross/rootfs/etc/resolv.conf
-sudo mkdir -p /home/fedya/cross/rootfs/home/fedya/repo
 sudo mount -obind /dev/ /home/fedya/cross/rootfs/dev 
 sudo mount -obind /proc/ /home/fedya/cross/rootfs/proc
 sudo mount -obind /sys/ /home/fedya/cross/rootfs/sys
-#i use local repo and mount it
-# u can use http or ftp
-sudo mount -obind /home/fedya/repo/ /home/fedya/cross/rootfs/home/fedya/repo
 echo "-->> Chroot is done"
 sudo chmod -R 777 $cross_chroot/rootfs/root/rpmbuild
 sudo chown -R root:root $cross_chroot/rootfs/root/rpmbuild
@@ -201,9 +197,11 @@ src_rpm_name=`sudo ls $cross_chroot/rootfs/root/rpmbuild/SRPMS/ -1 | grep 'src.r
 #echo 'get src_rpm name'
 echo $src_rpm_name
 echo '--> Building rpm...'
+export_list="gl_cv_func_printf_enomem=yes FORCE_UNSAFE_CONFIGURE=1"
+echo $export_list
 #sudo chroot $cross_chroot/rootfs/ /bin/bash --init-file /etc/bashrc -i  -c "armock -t $platform_arch -p /root/rpmbuild/SRPMS/$src_rpm_name"
 sudo chroot $cross_chroot/rootfs/ /bin/bash --init-file /etc/bashrc -i -c "urpmi --buildrequires --ignorearch --auto --no-verify-rpm /root/rpmbuild/SPECS/$spec_name && exit"
-sudo chroot $cross_chroot/rootfs/ /bin/bash --init-file /etc/bashrc -i -c "/usr/bin/rpmbuild -ba -v /root/rpmbuild/SPECS/$spec_name"
+sudo chroot $cross_chroot/rootfs/ /bin/bash --init-file /etc/bashrc -i -c " export $export_list;/usr/bin/rpmbuild -ba -v /root/rpmbuild/SPECS/$spec_name"
 
 
 #mock $src_rpm_name --resultdir $rpm_path -v --no-cleanup
@@ -220,7 +218,6 @@ echo '--> Done.'
 sudo umount /home/fedya/cross/rootfs/dev 
 sudo umount /home/fedya/cross/rootfs/proc
 sudo umount /home/fedya/cross/rootfs/sys
-sudo umount -l /home/fedya/cross/rootfs/home/fedya/repo
 sudo rm -f /etc/rpm/platform
 
 # Save results
