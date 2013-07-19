@@ -14,6 +14,7 @@ email="$EMAIL"
 platform_name="$PLATFORM_NAME"
 #platform_arch="$ARCH"
 platform_arch="armv7l"
+#platform_arch="armv7hl"
 #platform_arch="armv7nhl_omp3"
 
 
@@ -114,7 +115,7 @@ mkdir $rpm_path
 
 config_name="openmandriva-$platform_arch.cfg"
 config_dir=/etc/mock-urpm/
-sudo sh -c "echo 'armv7l-mandriva-linux-gnueabi' > /etc/rpm/platform"
+sudo sh -c "echo '$platform_arch-mandriva-linux-gnueabi' > /etc/rpm/platform"
 
 # Init config file
 default_cfg=$rpm_build_script_path/configs/default.cfg
@@ -197,11 +198,10 @@ src_rpm_name=`sudo ls $cross_chroot/rootfs/root/rpmbuild/SRPMS/ -1 | grep 'src.r
 #echo 'get src_rpm name'
 echo $src_rpm_name
 echo '--> Building rpm...'
-export_list="gl_cv_func_printf_enomem=yes FORCE_UNSAFE_CONFIGURE=1"
-echo $export_list
+export_list="gl_cv_func_printf_enomem=yes FORCE_UNSAFE_CONFIGURE=1 ac_cv_path_MSGMERGE=/usr/bin/msgmerge ac_cv_javac_supports_enums=yes"
 #sudo chroot $cross_chroot/rootfs/ /bin/bash --init-file /etc/bashrc -i  -c "armock -t $platform_arch -p /root/rpmbuild/SRPMS/$src_rpm_name"
 sudo chroot $cross_chroot/rootfs/ /bin/bash --init-file /etc/bashrc -i -c "urpmi --buildrequires --ignorearch --auto --no-verify-rpm /root/rpmbuild/SPECS/$spec_name && exit"
-sudo chroot $cross_chroot/rootfs/ /bin/bash --init-file /etc/bashrc -i -c " export $export_list;/usr/bin/rpmbuild -ba -v /root/rpmbuild/SPECS/$spec_name"
+sudo chroot $cross_chroot/rootfs/ /bin/bash --init-file /etc/bashrc -i -c " export $export_list;/usr/bin/rpmbuild --target=$platform_arch -ba -v /root/rpmbuild/SPECS/$spec_name"
 
 
 #mock $src_rpm_name --resultdir $rpm_path -v --no-cleanup
@@ -215,7 +215,7 @@ sudo sh -c "mv  $cross_chroot/rootfs/root/rpmbuild/RPMS/noarch/*.rpm /home/fedya
 sudo sh -c "mv  $cross_chroot/rootfs/root/rpmbuild/SRPMS/*.rpm $results_path/"
 
 echo '--> Done.'
-sudo umount /home/fedya/cross/rootfs/dev 
+sudo umount /home/fedya/cross/rootfs/dev
 sudo umount /home/fedya/cross/rootfs/proc
 sudo umount /home/fedya/cross/rootfs/sys
 sudo rm -f /etc/rpm/platform
