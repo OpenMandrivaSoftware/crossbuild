@@ -244,6 +244,8 @@ glibc)
 	sudo cp csu/crt1.o csu/crti.o csu/crtn.o $SYSROOT$USR/lib/
 	sudo $TARGET-gcc -nostdlib -nostartfiles -shared -x c /dev/null -o $SYSROOT$USR/lib/libc.so
 	cd ../../../..
+	# features.h needs gnu/stubs.h
+	[ -e $SYSROOT$USR/include/gnu/stubs.h ] || sudo touch $SYSROOT$USR/include/gnu/stubs.h
 #	$GOLD && export PATH="$OLDPATH"
 	;;
 uclibc)
@@ -320,7 +322,7 @@ glibc)
 	# (e)glibc doesn't like being built with gold
 #	$GOLD && OLDPATH="$PATH" && export PATH="$DIR"/ld.bfd:$PATH && BU="--with-binutils=$DIR/binutils.bfd"
 	$GOLD && GLIBC_LDFLAGS="-fuse-ld=bfd"
-	cd glibc/BUILD/*/libc
+	cd glibc/BUILD/*
 	rm -rf build1 ; mkdir build1
 	cd build1
 	../configure --prefix=$USR --target=$TARGET --host=$TARGET --with-sysroot=$SYSROOT --enable-add-ons=ports,nptl,libidn --with-headers=$SYSROOT$USR/include --disable-profile --without-gd --without-cvs --enable-omitfp --enable-oldest-abi=2.12 --enable-kernel=2.6.24 --enable-experimental-malloc --disable-systemtap --enable-bind-now $BU
