@@ -230,16 +230,9 @@ case $LIBC in
 glibc)
 	# (e)glibc doesn't like being built with gold
 	#$GOLD && OLDPATH="$PATH" && export PATH="$DIR"/ld.bfd:$PATH && BU="--with-binutils=$DIR/binutils.bfd"
-	cd glibc/BUILD/*/libc
-	[ -d ports ] || cp -a ../ports .
+	cd glibc/BUILD/*
 	sudo rm -rf build ; mkdir build
 	cd build
-	if [ -e "$DIR"/option-groups.config.in ]; then
-		sed -e "s,@DIR@,$DIR," "$DIR"/option-groups.config.in >option-groups.config
-	else
-		cp ../option-groups.defaults option-groups.config
-	fi
-	OPTION_GROUPS="`pwd`/option-groups.config"
 
 	which $TARGET-ld
 	$TARGET-ld --version
@@ -250,7 +243,7 @@ glibc)
 	make $SMP_MFLAGS csu/subdir_lib
 	sudo cp csu/crt1.o csu/crti.o csu/crtn.o $SYSROOT$USR/lib/
 	sudo $TARGET-gcc -nostdlib -nostartfiles -shared -x c /dev/null -o $SYSROOT$USR/lib/libc.so
-	cd ../../../../..
+	cd ../../../..
 #	$GOLD && export PATH="$OLDPATH"
 	;;
 uclibc)
@@ -330,11 +323,10 @@ glibc)
 	cd glibc/BUILD/*/libc
 	rm -rf build1 ; mkdir build1
 	cd build1
-	[ -e ../build/option-groups.config ] && cp ../build/option-groups.config .
 	../configure --prefix=$USR --target=$TARGET --host=$TARGET --with-sysroot=$SYSROOT --enable-add-ons=ports,nptl,libidn --with-headers=$SYSROOT$USR/include --disable-profile --without-gd --without-cvs --enable-omitfp --enable-oldest-abi=2.12 --enable-kernel=2.6.24 --enable-experimental-malloc --disable-systemtap --enable-bind-now $BU
 	make $SMP_MFLAGS LDFLAGS="$GLIBC_LDFLAGS" || make $SMP_MFLAGS LDFLAGS="$GLIBC_LDFLAGS"
 	sudo make install install_root=$SYSROOT LDFLAGS="$GLIBC_LDFLAGS"
-	cd ../../../../..
+	cd ../../../..
 #	$GOLD && PATH="$OLDPATH"
 	;;
 uclibc)
