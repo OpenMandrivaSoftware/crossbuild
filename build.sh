@@ -4,7 +4,7 @@ TARGET="$1"
 #[ -z "$TARGET" ] && TARGET=aarch64-mandriva-linux-gnu
 #[ -z "$TARGET" ] && TARGET=armv7hf-mandriva-linux-gnu
 TARGET="`/usr/share/libtool/config/config.sub $TARGET`"
-TOOLCHAIN_DONE=true
+#TOOLCHAIN_DONE=true
 if [ -z "$ARCH" ]; then
 	ARCH=`echo $TARGET |cut -d- -f1`
 	case $ARCH in
@@ -84,13 +84,6 @@ uclibc)
 	LIBCPACKAGE=uClibc
 	;;
 esac
-
-if [ "$LIBC" = "musl" ]; then
-	# musl doesn't need/use kernel headers
-	KERNEL_HEADERS=""
-else
-	KERNEL_HEADERS="kernel"
-fi
 
 SYSROOT=/usr/$TARGET/sys-root
 SMP_MFLAGS="-j`getconf _NPROCESSORS_ONLN`"
@@ -220,17 +213,15 @@ if [ "$TOOLCHAIN_DONE" != "true" ]; then
 	cd ../../../..
 
 
-	if [ "$LIBC" != "musl" ]; then
-		echo ========================================================================
-		echo kernel headers
-		echo ========================================================================
-		# Just the headers for now...
-		cd kernel/BUILD/kernel-*
-		make ARCH=$KERNELARCH CROSS_COMPILE=$TARGET- defconfig
-		make ARCH=$KERNELARCH CROSS_COMPILE=$TARGET- prepare0 prepare1 prepare2 prepare3
-		sudo make ARCH=$KERNELARCH CROSS_COMPILE=$TARGET- INSTALL_HDR_PATH=$SYSROOT$USR headers_install
-		cd ../../..
-	fi
+	echo ========================================================================
+	echo kernel headers
+	echo ========================================================================
+	# Just the headers for now...
+	cd kernel/BUILD/kernel-*/linux-*
+	make ARCH=$KERNELARCH CROSS_COMPILE=$TARGET- defconfig
+	make ARCH=$KERNELARCH CROSS_COMPILE=$TARGET- prepare0 prepare1 prepare2 prepare3
+	sudo make ARCH=$KERNELARCH CROSS_COMPILE=$TARGET- INSTALL_HDR_PATH=$SYSROOT$USR headers_install
+	cd ../../../..
 
 	echo ========================================================================
 	echo libc headers
@@ -246,7 +237,7 @@ if [ "$TOOLCHAIN_DONE" != "true" ]; then
 		which $TARGET-ld
 		$TARGET-ld --version
 
-		../configure --prefix=$USR --target=$TARGET --host=$TARGET --with-sysroot=$SYSROOT --enable-add-ons=ports,nptl,libidn --with-headers=$SYSROOT$USR/include --disable-profile --without-gd --without-cvs --enable-omitfp --enable-oldest-abi=2.12 --enable-kernel=2.6.24 --enable-experimental-malloc --disable-systemtap --enable-bind-now --disable-selinux $BU
+		../configure --prefix=$USR --target=$TARGET --host=$TARGET --with-sysroot=$SYSROOT --enable-add-ons=ports,nptl,libidn --with-headers=$SYSROOT$USR/include --disable-profile --without-gd --without-cvs --enable-omitfp --enable-oldest-abi=2.12 --enable-kernel=3.14.0 --enable-experimental-malloc --disable-systemtap --enable-bind-now --disable-selinux $BU
 		sudo make $SMP_MFLAGS install-headers install_root=$SYSROOT install-bootstrap-headers=yes
 		sudo mkdir -p $SYSROOT$USR/lib
 		make $SMP_MFLAGS csu/subdir_lib
@@ -511,7 +502,7 @@ fi
 rm -rf packages
 mkdir packages
 cd packages
-for i in iso-codes filesystem setup $LIBCPACKAGE ncurses bash coreutils; do
+for i in iso-codes filesystem setup $LIBCPACKAGE ncurses bash toybox; do
 	case $i in
 	ncurses)
 		# Depending on our target, we may not have an STL yet
