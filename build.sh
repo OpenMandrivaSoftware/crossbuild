@@ -1,6 +1,6 @@
 #!/bin/sh
 TARGET="$1"
-[ -z "$TARGET" ] && TARGET=x86_64-openmandriva-linux-muslx32
+[ -z "$TARGET" ] && TARGET=x86_64-openmandriva-linux-musl #x32
 #[ -z "$TARGET" ] && TARGET=aarch64-mandriva-linux-gnu
 #[ -z "$TARGET" ] && TARGET=armv7hf-mandriva-linux-gnu
 TARGET="`/usr/share/libtool/config/config.sub $TARGET`"
@@ -94,7 +94,7 @@ set -e
 if [ "$TOOLCHAIN_DONE" != "true" ]; then
 	cd `dirname $0`
 	DIR=`pwd`
-	for i in binutils gcc $KERNEL_HEADERS $LIBCPACKAGE; do
+	for i in binutils gcc kernel $LIBCPACKAGE; do
 		[ -d $i ] && continue
 		abf get openmandriva/$i
 		cd $i
