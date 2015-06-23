@@ -1,9 +1,13 @@
 #!/bin/sh
+
 TARGET="$1"
 [ -z "$TARGET" ] && TARGET=x86_64-openmandriva-linux-musl
 #[ -z "$TARGET" ] && TARGET=aarch64-mandriva-linux-gnu
 #[ -z "$TARGET" ] && TARGET=armv7hf-mandriva-linux-gnu
 TARGET="`/usr/share/libtool/config/config.sub $TARGET`"
+# Cache sudo credentials now so we don't end up prompting
+# while the user is looking at something else...
+sudo true
 #TOOLCHAIN_DONE=true
 if [ -z "$ARCH" ]; then
 	ARCH=`echo $TARGET |cut -d- -f1`
@@ -91,11 +95,11 @@ echo ========================================================================
 # later.
 cat >$TARGET-cc <<EOF
 #!/bin/sh
-exec clang -target $TARGET -no-integrated-as --sysroot=$SYSROOT -isysroot $SYSROOT "\$@"
+exec clang -target $TARGET -no-integrated-as --sysroot=$SYSROOT -isysroot $SYSROOT -ccc-gcc-name $TARGET-gcc "\$@"
 EOF
 cat >$TARGET-c++ <<EOF
 #!/bin/sh
-exec clang++ -target $TARGET --sysroot=$SYSROOT -isysroot $SYSROOT "\$@"
+exec clang++ -target $TARGET --sysroot=$SYSROOT -isysroot $SYSROOT -ccc-gcc-name $TARGET-g++ "\$@"
 EOF
 chmod +x $TARGET-cc $TARGET-c++
 sudo mv $TARGET-cc $TARGET-c++ /usr/bin
@@ -246,7 +250,7 @@ cd build
 	--disable-libsanitizer \
 	--with-sysroot=$SYSROOT
 make $SMP_MFLAGS
-sudo cp -a */libgcc/*.{so,a}* $SYSROOT/usr/lib/
+sudo cp -a */libgcc/*.{so,a}* $SYSROOT/lib/
 # We don't actually use libstdc++, but libc++'s cmake files insist on
 # checking for a working C++ compiler (which implies being able to link
 # to an STL).
@@ -257,7 +261,7 @@ echo ========================================================================
 echo extended packages
 echo ========================================================================
 cd packages
-for i in ncurses mksh toybox make libc++; do
+for i in ncurses mksh toybox binutils libc++ llvm; do
 	case $i in
 	ncurses)
 		# Depending on our target, we may not have an STL yet
@@ -268,6 +272,18 @@ for i in ncurses mksh toybox make libc++; do
 		;;
 	make)
 		EXTRA_RPMFLAGS="--without guile"
+		;;
+	binutils)
+		EXTRA_RPMFLAGS="--without gold"
+		;;
+	llvm)
+		cat >$TARGET-c++ <<EOF
+#!/bin/sh
+exec clang++ -target $TARGET --sysroot=$SYSROOT -isysroot $SYSROOT -stdlib=libc++ -ccc-gcc-name $TARGET-g++ "\$@" -lc++ -lc++abi
+EOF
+		chmod +x $TARGET-c++
+		sudo mv $TARGET-c++ /usr/bin
+		EXTRA_RPMFLAGS="--with libcxx --without ocaml --with bootstrap --without ffi"
 		;;
 	*)
 		EXTRA_RPMFLAGS=""
