@@ -2,8 +2,8 @@
 
 TARGET="$1"
 [ -z "$TARGET" ] && TARGET=x86_64-openmandriva-linux-musl
-#[ -z "$TARGET" ] && TARGET=aarch64-mandriva-linux-gnu
-#[ -z "$TARGET" ] && TARGET=armv7hf-mandriva-linux-gnu
+#[ -z "$TARGET" ] && TARGET=aarch64-openmandriva-linux-musl
+#[ -z "$TARGET" ] && TARGET=armv7hf-mandriva-linux-musleabi
 TARGET="`/usr/share/libtool/config/config.sub $TARGET`"
 # Cache sudo credentials now so we don't end up prompting
 # while the user is looking at something else...
