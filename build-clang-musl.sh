@@ -56,7 +56,7 @@ set -e
 
 cd `dirname $0`
 DIR=`pwd`
-for i in binutils kernel gcc; do
+for i in binutils kernel-release gcc; do
 	[ -d $i ] && continue
 	abf get openmandriva/$i
 	cd $i
@@ -110,11 +110,11 @@ echo ========================================================================
 echo kernel headers
 echo ========================================================================
 # Just the headers for now...
-cd kernel/BUILD/kernel-*/linux-*
+cd kernel-release/BUILD/linux-*
 make ARCH=$KERNELARCH CROSS_COMPILE=$TARGET- defconfig
 make ARCH=$KERNELARCH CROSS_COMPILE=$TARGET- prepare0 prepare1 prepare2 prepare3
 sudo make ARCH=$KERNELARCH CROSS_COMPILE=$TARGET- INSTALL_HDR_PATH=$SYSROOT/usr headers_install
-cd ../../../..
+cd ../../..
 
 # Let's get rid of -no-integrated-as now...
 sudo sed -i -e 's, -no-integrated-as,,' /usr/bin/$TARGET-cc
@@ -237,6 +237,7 @@ done
 echo ========================================================================
 echo libgcc and friends
 echo ========================================================================
+pwd
 cd ../gcc/BUILD/gcc*
 rm -rf build
 mkdir build
@@ -261,40 +262,34 @@ echo ========================================================================
 echo extended packages
 echo ========================================================================
 cd packages
+# In the first build, we don't have an STL yet -- must disable C++ use
+EXTRA_RPMFLAGS_ncurses="--without cplusplus"
+EXTRA_RPMFLAGS_binutils="--without gold"
+# Let's build smaller versions of key tools
+EXTRA_RPMFLAGS_mksh="--with bin_sh"
+EXTRA_RPMFLAGS_make="--without guile"
+# Enable more features so we don't need the big packages
+EXTRA_RPMFLAGS_toybox="--with acpi --with cpio --with diffutils --with eject --with file --with findutils --with grep --with hostname --with net_tools --with procps --with psmisc --with rfkill --with sed --with sharutils --with time --with util_linux --with which"
+# Reduce build dependencies and enable all features
+EXTRA_RPMFLAGS_llvm="--with libcxx --without ocaml --with bootstrap --without ffi"
 for i in ncurses mksh toybox binutils libc++ llvm; do
-	case $i in
-	ncurses)
-		# Depending on our target, we may not have an STL yet
-		EXTRA_RPMFLAGS="--without cplusplus"
-		;;
-	mksh)
-		EXTRA_RPMFLAGS="--with bin_sh"
-		;;
-	make)
-		EXTRA_RPMFLAGS="--without guile"
-		;;
-	binutils)
-		EXTRA_RPMFLAGS="--without gold"
-		;;
-	llvm)
+	if [ "$i" = "llvm" ]; then
 		cat >$TARGET-c++ <<EOF
 #!/bin/sh
 exec clang++ -target $TARGET --sysroot=$SYSROOT -isysroot $SYSROOT -stdlib=libc++ -ccc-gcc-name $TARGET-g++ "\$@" -lc++ -lc++abi
 EOF
 		chmod +x $TARGET-c++
 		sudo mv $TARGET-c++ /usr/bin
-		EXTRA_RPMFLAGS="--with libcxx --without ocaml --with bootstrap --without ffi"
-		;;
-	*)
-		EXTRA_RPMFLAGS=""
-		;;
-	esac
+	fi
 	abf get openmandriva/$i
 	cd $i
 	abf fetch
 	rm -rf BUILD RPMS SRPMS
-	echo "Running: rpm -ba --target $TARGET --without uclibc $EXTRA_RPMFLAGS --define \"_sourcedir `pwd`\" --define \"_builddir `pwd`/BUILD\" --define \"_rpmdir `pwd`/RPMS\" --define \"_srpmdir `pwd`/SRPMS\" *.spec"
-	rpm -ba --target $TARGET --without uclibc $EXTRA_RPMFLAGS --define "_sourcedir `pwd`" --define "_builddir `pwd`/BUILD" --define "_rpmdir `pwd`/RPMS" --define "_srpmdir `pwd`/SRPMS" *.spec
+	sudo -v
+	FLAGS="`eval echo \\$EXTRA_RPMFLAGS_$i`"
+	echo $FLAGS
+	echo "Running: rpm -ba --target $TARGET --without uclibc $FLAGS --define \"_sourcedir `pwd`\" --define \"_builddir `pwd`/BUILD\" --define \"_rpmdir `pwd`/RPMS\" --define \"_srpmdir `pwd`/SRPMS\" *.spec"
+	rpm -ba --target $TARGET --without uclibc $FLAGS --define "_sourcedir `pwd`" --define "_builddir `pwd`/BUILD" --define "_rpmdir `pwd`/RPMS" --define "_srpmdir `pwd`/SRPMS" *.spec
 	# nodeps is necessary at this point because libc and friends aren't coming from packages yet
 	sudo rpm --root $SYSROOT --ignorearch -Uvh --force --nodeps RPMS/*/*.rpm
 	cd ..
