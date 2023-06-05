@@ -50,22 +50,10 @@ for i in "$@"; do
 		pkg="$(echo $(echo $pkg |cut -d: -f1):$(echo $pkg |cut -d: -f3-) | sed -e 's,:$,,')"
 	done
 
-	case $pkg in
-	llvm)
-		cat >$TARGET-c++ <<EOF
-#!/bin/sh
-exec clang++ -target $TARGET --sysroot=$SYSROOT -isysroot $SYSROOT -stdlib=libc++ -ccc-gcc-name $TARGET-g++ "\$@" -lc++ -lc++abi
-EOF
-		chmod +x $TARGET-c++
-		sudo mv $TARGET-c++ /usr/bin
-		EXTRA_RPMFLAGS="$EXTRA_RPMFLAGS --with libcxx --without ocaml --with bootstrap --without ffi"
-		;;
-	esac
-
 	rm -rf $pkg
-	git clone git@github.com:OpenMandrivaAssociation/$pkg
+	git clone --depth 1 git@github.com:OpenMandrivaAssociation/$pkg
 	cd $pkg
-	abf fetch
+	[ -e .abf.yml ] && abf fetch
 	rm -rf BUILD RPMS SRPMS
 	echo "Running: rpmbuild -ba --target $TARGET --without uclibc $EXTRA_RPMFLAGS --define \"_sourcedir `pwd`\" --define \"_builddir `pwd`/BUILD\" --define \"_rpmdir `pwd`/RPMS\" --define \"_srpmdir `pwd`/SRPMS\" *.spec"
 	rpmbuild -ba --nodeps --target $TARGET --without uclibc $EXTRA_RPMFLAGS --define "_sourcedir `pwd`" --define "_builddir `pwd`/BUILD" --define "_rpmdir `pwd`/RPMS" --define "_srpmdir `pwd`/SRPMS" *.spec
