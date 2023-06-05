@@ -3,27 +3,24 @@ set -x
 
 if [ "$1" = "--target" -o "$1" = "-t" ]; then
 	shift
-	TARGET="$1"
+	RPMTARGET="$1"
 	shift
 fi
-[ -z "$TARGET" ] && TARGET=riscv64-openmandriva-linux-gnu
-#[ -z "$TARGET" ] && TARGET=x86_64-openmandriva-linux-musl
-#[ -z "$TARGET" ] && TARGET=aarch64-mandriva-linux-gnu
-#[ -z "$TARGET" ] && TARGET=armv7hf-mandriva-linux-gnu
+[ -z "$RPMTARGET" ] && RPMTARGET=riscv64-linux
 
 if [ -z "$1" ]; then
 	echo "Specify package"
 	exit 1
 fi
 
-TARGET="`/usr/share/libtool/config/config.sub $TARGET`"
+FULLTARGET="$(rpm --target=$RPMTARGET -E %{_target_platform})"
 # Cache sudo credentials now so we don't end up prompting
 # while the user is looking at something else...
-sudo true
+sudo -v
 
-SYSROOT=/usr/$TARGET
+SYSROOT=/usr/$FULLTARGET
 if [ ! -d $SYSROOT ]; then
-	echo "No sysroot for $TARGET"
+	echo "No sysroot for $FULLTARGET"
 	exit 1
 fi
 SMP_MFLAGS="-j`getconf _NPROCESSORS_ONLN`"
@@ -55,8 +52,8 @@ for i in "$@"; do
 	cd $pkg
 	[ -e .abf.yml ] && abf fetch
 	rm -rf BUILD RPMS SRPMS
-	echo "Running: rpmbuild -ba --target $TARGET --without uclibc $EXTRA_RPMFLAGS --define \"_sourcedir `pwd`\" --define \"_builddir `pwd`/BUILD\" --define \"_rpmdir `pwd`/RPMS\" --define \"_srpmdir `pwd`/SRPMS\" *.spec"
-	rpmbuild -ba --nodeps --target $TARGET --without uclibc $EXTRA_RPMFLAGS --define "_sourcedir `pwd`" --define "_builddir `pwd`/BUILD" --define "_rpmdir `pwd`/RPMS" --define "_srpmdir `pwd`/SRPMS" *.spec
+	echo "Running: rpmbuild -ba --target $RPMTARGET --without uclibc $EXTRA_RPMFLAGS --define \"_sourcedir `pwd`\" --define \"_builddir `pwd`/BUILD\" --define \"_rpmdir `pwd`/RPMS\" --define \"_srpmdir `pwd`/SRPMS\" *.spec"
+	rpmbuild -ba --nodeps --target $RPMTARGET --without uclibc $EXTRA_RPMFLAGS --define "_sourcedir `pwd`" --define "_builddir `pwd`/BUILD" --define "_rpmdir `pwd`/RPMS" --define "_srpmdir `pwd`/SRPMS" *.spec
 	# nodeps is necessary at this point because libc and friends aren't coming from packages yet
 	#sudo rpm --root $SYSROOT --ignorearch -Uvh --force --nodeps RPMS/*/*.rpm
 	cd ..

@@ -141,7 +141,7 @@ for i in $LIBC:-crosscompilers ncurses:-cplusplus readline bash make ninja zlib-
 		cd ../../../..
 		sudo rpm -r /usr/$FULLTARGET -Uvh --force --noscripts --nodeps packages/${PACKAGE}/RPMS/*/*
 	else
-		./build-package.sh $i
+		./build-package.sh -t $RPMTARGET $i
 	fi
 
 	if [ "$i" = "binutils" ]; then
