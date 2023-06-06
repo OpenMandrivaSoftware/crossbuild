@@ -148,9 +148,9 @@ for i in $LIBC:-crosscompilers ncurses:-cplusplus readline bash make ninja zlib-
 		# Special case: We want the -devel package for plugin-api.h, but we don't want
 		# the binaries to override the host architecture binaries in the chroot
 		sudo rpm -r /usr/$FULLTARGET -Uvh --force --noscripts --ignorearch --nodeps packages/${PACKAGE}/RPMS/*/*-devel*
-	elif [ "$i" != "$LIBC" -a "$i" != "ninja" -a "$i" != "make" -a "$i" != "gcc" -a "$i" != "filesystem" ]; then
+	elif [ "$i" != "$LIBC" -a "$i" != "ninja" -a "$i" != "make" -a "$i" != "gcc" -a "$i" != "filesystem" -a "$i" != "llvm" ]; then
 		# In the case of LIBC/binutils/gcc, better to keep the crosscompiler's package
-		# In the case of ninja/make, we need to run the HOST version, but
+		# In the case of ninja/make/llvm, we need to run the HOST version, but
 		# cmake and friends prefer anything in the sysroot
 		# (we need to build ninja and make anyway, to have them available
 		# in the final buildroot creation)
