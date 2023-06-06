@@ -85,7 +85,7 @@ if ! grep ^%__cc /usr/lib/rpm/platform/$RPMTARGET/macros; then
 fi
 
 # FIXME we should fix the search path instead
-[ -e /usr/$FULLTARGET/lib/pkgconfig ] || sudo ln -sf ../lib64/pkgconfig /usr/$FULLTARGET/lib/pkgconfig
+[ -e /usr/$FULLTARGET/lib/pkgconfig ] || [ -d /usr/$FULLTARGET/lib64 ] && sudo ln -sf ../lib64/pkgconfig /usr/$FULLTARGET/lib/pkgconfig
 [ -h /usr/$FULLTARGET/sys-root ] || sudo ln -sf . /usr/$FULLTARGET/sys-root
 
 # Some notes for the build order (and reasons for packages you
