@@ -75,15 +75,6 @@ musl*)
 	;;
 esac
 
-if ! grep ^%__cc /usr/lib/rpm/platform/$RPMTARGET/macros; then
-	# Unfortunately %__cc containing spaces doesn't work,
-	# so we can't set it to clang -target $FULLTARGET
-	# Packages that use cmake or meson will do the right
-	# thing nevertheless, thanks to toolchain files.
-	sudo sed -i -e "\$a\%__cc $FULLTARGET-gcc" /usr/lib/rpm/platform/$RPMTARGET/macros
-	sudo sed -i -e "\$a\%__cxx $FULLTARGET-g++" /usr/lib/rpm/platform/$RPMTARGET/macros
-fi
-
 # FIXME we should fix the search path instead
 [ -e /usr/$FULLTARGET/lib/pkgconfig ] || [ -d /usr/$FULLTARGET/lib64 ] && sudo ln -sf ../lib64/pkgconfig /usr/$FULLTARGET/lib/pkgconfig
 [ -h /usr/$FULLTARGET/sys-root ] || sudo ln -sf . /usr/$FULLTARGET/sys-root
@@ -122,7 +113,7 @@ OMV_VERSION=cooker
 PKGS=${ABF_DOWNLOADS}/${OMV_VERSION}/repository/x86_64/main/release/
 curl -s -L $PKGS |grep '^<a' |cut -d'"' -f2 >PACKAGES
 
-for i in $LIBC:-crosscompilers ncurses:-cplusplus readline bash make ninja zlib-ng gzip bzip2 xz libb2 lz4 zstd file libarchive libtirpc:-gss libnsl pam attr acl lua libgpg-error libgcrypt sqlite libcap expat pcre2 json-c lksctp-tools openssl libssh curl:-gnutls:-mbedtls libmicrohttpd elfutils libbpf util-linux:bootstrap cracklib libpwquality:-python x11-proto-devel:-python2 libxau libxcb x11-xtrans-devel libx11 libxkbfile xkbcomp dbus:-systemd tpm2-tss libidn2 libpng:-pgo qrencode kmod gmp libunistring nettle:-pgo libtasn1 brotli:-pgo:-python libffi bash-completion-devel p11-kit:bootstrap gnutls:-pgo icu libxml2:-pgo wayland wayland-protocols-devel libxkbcommon glib2.0:-pgo:-gtkdoc systemd:bootstrap popt libxrender libxext libXrandr vulkan-headers vulkan-loader mpfr libmpc isl binutils gcc rpm llvm grep sed gawk coreutils pkgconf kbd python:-tkinter filesystem pbzip2 rootcerts pigz:-pgo libxcvt xcb-util-renderutil xcb-util xcb-util-image xcb-util-wm xcb-util-keysyms pixman:-pgo libfontenc graphite2 freetype:-rsvg:-harfbuzz fontconfig liblzo cairo harfbuzz:-gir freetype:-rsvg libxfont2 kernel xkeyboard-config crontabs libedit python-six lz4 setup basesystem; do
+for i in $LIBC:-crosscompilers ncurses:-cplusplus readline bash make ninja zlib-ng gzip bzip2 xz libb2 lz4 zstd file libarchive libtirpc:-gss libnsl pam attr acl lua:-pgo libgpg-error libgcrypt sqlite libcap expat pcre2 json-c lksctp-tools openssl libssh curl:-gnutls:-mbedtls libmicrohttpd elfutils libbpf util-linux:bootstrap cracklib libpwquality:-python x11-proto-devel:-python2 libxau libxcb x11-xtrans-devel libx11 libxkbfile xkbcomp dbus:-systemd tpm2-tss libidn2 libpng:-pgo qrencode kmod gmp libunistring nettle:-pgo libtasn1 brotli:-pgo:-python libffi bash-completion-devel p11-kit:bootstrap gnutls:-pgo icu libxml2:-pgo:-python wayland wayland-protocols-devel libxkbcommon glib2.0:-pgo:-gtkdoc libseccomp systemd:bootstrap popt libxrender libxext libXrandr vulkan-headers vulkan-loader mpfr libmpc isl binutils gcc rpm llvm grep sed gawk coreutils pkgconf kbd python:-tkinter filesystem pbzip2 rootcerts pigz:-pgo libxcvt xcb-util-renderutil xcb-util xcb-util-image xcb-util-wm xcb-util-keysyms pixman:-pgo libfontenc graphite2 freetype:-rsvg:-harfbuzz fontconfig liblzo cairo harfbuzz:-gir freetype:-rsvg libxfont2 kernel xkeyboard-config crontabs libedit python python-six lz4 setup basesystem perl vim; do
 	PACKAGE="${i/:*}"
 	if [ "$PACKAGE" = "systemd" ]; then
 		# FIXME this is nasty: bash-completion-devel is needed for p11-kit's build system,
