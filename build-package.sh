@@ -14,10 +14,6 @@ if [ -z "$1" ]; then
 fi
 
 FULLTARGET="$(rpm --target=$RPMTARGET -E %{_target_platform})"
-# Cache sudo credentials now so we don't end up prompting
-# while the user is looking at something else...
-sudo -v
-
 SYSROOT=/usr/$FULLTARGET
 if [ ! -d $SYSROOT ]; then
 	echo "No sysroot for $FULLTARGET"
@@ -54,7 +50,5 @@ for i in "$@"; do
 	rm -rf BUILD RPMS SRPMS
 	echo "Running: rpmbuild -ba --target $RPMTARGET --without uclibc $EXTRA_RPMFLAGS --define \"_sourcedir `pwd`\" --define \"_builddir `pwd`/BUILD\" --define \"_rpmdir `pwd`/RPMS\" --define \"_srpmdir `pwd`/SRPMS\" *.spec"
 	rpmbuild -ba --nodeps --target $RPMTARGET --without uclibc $EXTRA_RPMFLAGS --define "_sourcedir `pwd`" --define "_builddir `pwd`/BUILD" --define "_rpmdir `pwd`/RPMS" --define "_srpmdir `pwd`/SRPMS" *.spec
-	# nodeps is necessary at this point because libc and friends aren't coming from packages yet
-	#sudo rpm --root $SYSROOT --ignorearch -Uvh --force --nodeps RPMS/*/*.rpm
 	cd ..
 done
