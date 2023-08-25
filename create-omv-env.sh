@@ -49,7 +49,7 @@ if $WIPE; then
 fi
 
 # Host side dependencies... Probably nowhere near complete
-sudo dnf -y install task-devel texinfo asciidoc 'perl(Pod::Html)' nettle libtasn1-tools cmake 'pkgconfig(xkeyboard-config)' 'pkgconfig(wayland-protocols)' bpftool 'pkgconfig(fdisk)' 'pkgconfig(tss2-esys)' 'pkgconfig(libbpf)' 'pkgconfig(pwquality)' 'pkgconfig(libqrencode)' 'pkgconfig(libkmod)' 'pkgconfig(libmicrohttpd)' cross-${FULLTARGET}-binutils cross-${FULLTARGET}-gcc cross-${FULLTARGET}-libc cross-${FULLTARGET}-kernel-headers console-setup
+sudo dnf -y install task-devel texinfo asciidoc 'perl(Pod::Html)' nettle libtasn1-tools cmake 'pkgconfig(xkeyboard-config)' 'pkgconfig(wayland-protocols)' bpftool 'pkgconfig(fdisk)' 'pkgconfig(tss2-esys)' 'pkgconfig(libbpf)' 'pkgconfig(pwquality)' 'pkgconfig(libqrencode)' 'pkgconfig(libkmod)' 'pkgconfig(libmicrohttpd)' 'pkgconfig(liblz4)' 'pkgconfig(libseccomp)' cross-${FULLTARGET}-binutils cross-${FULLTARGET}-gcc cross-${FULLTARGET}-libc cross-${FULLTARGET}-kernel-headers console-setup glibc-i18ndata lzip gtk-doc
 # FIXME the presence of bash-completion.pc on the host system causes systemd
 # and other meson based builds to install the completions file in a bogus
 # location. For now, let's just make sure the file isn't there...
