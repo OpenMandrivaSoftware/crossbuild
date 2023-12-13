@@ -50,6 +50,11 @@ fi
 
 # Host side dependencies... Probably nowhere near complete
 sudo dnf -y install task-devel texinfo asciidoc 'perl(Pod::Html)' 'perl(open)' nettle libtasn1-tools cmake 'pkgconfig(xkeyboard-config)' 'pkgconfig(wayland-protocols)' bpftool 'pkgconfig(fdisk)' 'pkgconfig(tss2-esys)' 'pkgconfig(libbpf)' 'pkgconfig(pwquality)' 'pkgconfig(libqrencode)' 'pkgconfig(libkmod)' 'pkgconfig(libmicrohttpd)' 'pkgconfig(liblz4)' 'pkgconfig(libseccomp)' cross-${FULLTARGET}-binutils cross-${FULLTARGET}-gcc cross-${FULLTARGET}-libc cross-${FULLTARGET}-kernel-headers console-setup glibc-i18ndata lzip gtk-doc
+# FIXME this should really be fixed properly, but for now, this workaround will do:
+# pam detects the HOST systemd headers and then fails to build systemd related bits because
+# the target headers aren't there yet.
+# Remove this once crosscompiling pam is fixed.
+sudo dnf -y erase 'pkgconfig(systemd)'
 # FIXME the presence of bash-completion.pc on the host system causes systemd
 # and other meson based builds to install the completions file in a bogus
 # location. For now, let's just make sure the file isn't there...
