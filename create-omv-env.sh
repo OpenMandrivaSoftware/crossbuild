@@ -49,7 +49,13 @@ if $WIPE; then
 fi
 
 # Host side dependencies... Probably nowhere near complete
-sudo dnf -y install task-devel texinfo asciidoc 'perl(Pod::Html)' 'perl(open)' nettle libtasn1-tools cmake 'pkgconfig(xkeyboard-config)' 'pkgconfig(wayland-protocols)' bpftool 'pkgconfig(fdisk)' 'pkgconfig(tss2-esys)' 'pkgconfig(libbpf)' 'pkgconfig(pwquality)' 'pkgconfig(libqrencode)' 'pkgconfig(libkmod)' 'pkgconfig(libmicrohttpd)' 'pkgconfig(liblz4)' 'pkgconfig(libseccomp)' cross-${FULLTARGET}-binutils cross-${FULLTARGET}-gcc cross-${FULLTARGET}-libc cross-${FULLTARGET}-kernel-headers console-setup glibc-i18ndata lzip gtk-doc
+# FIXME requiring cmake(LibSolv) on the host side is a nasty workaround
+# for libdnf's cmake files not finding FindLibSolv in the sysroot. Since
+# all it produces is -lsolv, the fact that it's taking stuff from the
+# host doesn't have serious drawbacks, so we can leave it for now.
+# FIXME Host pyudev is required to make lvm2's configure script happy,
+# but it should really check the sysroot instead.
+sudo dnf -y install task-devel texinfo asciidoc 'perl(Pod::Html)' 'perl(open)' nettle libtasn1-tools cmake 'pkgconfig(xkeyboard-config)' 'pkgconfig(wayland-protocols)' bpftool 'pkgconfig(fdisk)' 'pkgconfig(tss2-esys)' 'pkgconfig(libbpf)' 'pkgconfig(pwquality)' 'pkgconfig(libqrencode)' 'pkgconfig(libkmod)' 'pkgconfig(libmicrohttpd)' 'pkgconfig(liblz4)' 'pkgconfig(libseccomp)' cross-${FULLTARGET}-binutils cross-${FULLTARGET}-gcc cross-${FULLTARGET}-libc cross-${FULLTARGET}-kernel-headers console-setup glibc-i18ndata lzip gtk-doc luajit-lpeg luajit-mpack 'cmake(LibSolv)' pyudev
 # FIXME this should really be fixed properly, but for now, this workaround will do:
 # pam detects the HOST systemd headers and then fails to build systemd related bits because
 # the target headers aren't there yet.
@@ -118,7 +124,7 @@ OMV_VERSION=cooker
 PKGS=${ABF_DOWNLOADS}/${OMV_VERSION}/repository/x86_64/main/release/
 curl -s -L $PKGS |grep '^<a' |cut -d'"' -f2 >PACKAGES
 
-for i in $LIBC:-crosscompilers ncurses:-cplusplus readline bash make ninja zlib-ng gzip bzip2 xz libb2 lz4 zstd file libarchive libtirpc:-gss libnsl libxcrypt pam attr acl lua:-pgo libgpg-error libgcrypt sqlite libcap expat pcre2 json-c lksctp-tools openssl libssh curl:-gnutls:-mbedtls libmicrohttpd elfutils libbpf util-linux:bootstrap cracklib libpwquality:-python x11-proto-devel:-python2 libxau libxcb x11-xtrans-devel libx11 libxkbfile xkbcomp dbus:-systemd tpm2-tss libidn2 libpng:-pgo qrencode kmod gmp libunistring nettle:-pgo libtasn1 brotli:-pgo:-python libffi bash-completion-devel p11-kit:bootstrap gnutls:-pgo icu libxml2:-pgo:-python wayland wayland-protocols-devel libxkbcommon glib2.0:-pgo:-gtkdoc libseccomp systemd:bootstrap popt libxrender libxext libXrandr vulkan-headers vulkan-loader mpfr libmpc isl binutils gcc rpm llvm grep sed gawk coreutils pkgconf kbd python:-tkinter filesystem pbzip2 rootcerts pigz:-pgo libxcvt xcb-util-renderutil xcb-util xcb-util-image xcb-util-wm xcb-util-keysyms pixman:-pgo libfontenc graphite2 freetype:-rsvg:-harfbuzz fontconfig liblzo cairo harfbuzz:-gir freetype:-rsvg libxfont2 kernel xkeyboard-config crontabs libedit python-six lz4 setup basesystem perl vim:-gui; do
+for i in $LIBC:-crosscompilers ncurses:-cplusplus readline bash make ninja zlib-ng gzip bzip2 xz libb2 lz4 zstd file libarchive libtirpc:-gss libnsl libxcrypt pam attr acl lua:-pgo libgpg-error libgcrypt sqlite libcap expat pcre2 json-c lksctp-tools openssl libssh curl:-gnutls:-mbedtls libmicrohttpd elfutils libbpf util-linux:bootstrap cracklib libpwquality:-python x11-proto-devel:-python2 libxau libxcb x11-xtrans-devel libx11 libxkbfile xkbcomp dbus:-systemd tpm2-tss libidn2 libpng:-pgo qrencode kmod gmp libunistring nettle:-pgo libtasn1 brotli:-pgo:-python libffi bash-completion-devel p11-kit:bootstrap gnutls:-pgo icu libxml2:-pgo:-python wayland wayland-protocols-devel libxkbcommon glib2.0:-pgo:-gtkdoc libseccomp systemd:bootstrap popt libxrender libxext libXrandr vulkan-headers vulkan-loader mpfr libmpc isl binutils gcc rpm llvm grep sed gawk coreutils pkgconf kbd python:-tkinter filesystem pbzip2 rootcerts pigz:-pgo libxcvt xcb-util-renderutil xcb-util xcb-util-image xcb-util-wm xcb-util-keysyms pixman:-pgo libfontenc graphite2 freetype:-rsvg:-harfbuzz fontconfig liblzo cairo harfbuzz:-gir freetype:-rsvg libxfont2 kernel xkeyboard-config crontabs libedit python-six lz4 setup basesystem perl luajit lua lua-lpeg lua-mpack libuv libluv libtermkey libvterm msgpack tree-sitter unibilium neovim libmd libbsd shadow xdg-utils which unzip groff:-x11 fuse e2fsprogs procps-ng psmisc time libpsl wget findutils patch rootfiles etcskel diffutils publicsuffix-list publicsuffix-list-dafsa libksba npth libassuan autoconf automake libtool cyrus-sasl:bootstrap:-mysql:-pgsql:-krb5 libevent openldap gnupg diffutils cmake:bootstrap meson m4 common-licenses distro-release hostname iputils less libutempter logrotate net-tools:-bluetooth libsecret:-gir pinentry:-qt5:-gtk2:-gnome:-fltk debugedit xxhash dwz gdb rpm-helper lsb-release ppl shared-mime-info go-srpm-macros python-packaging python-pkg-resources rust-srpm-macros rpmlint spec-helper zchunk libsolv check librepo yaml libmodulemd:-gir:-python cppunit libdnf dnf desktop-file-utils libice libsm libxt libxmu xset xprop chrpath pam_userpass perl-srpm-macros libaio pyudev lvm2 argon2 cryptsetup systemd gettext:-check:-java:-csharp:-emacs run-parts pcre onig slang newt chkconfig plymouth-theme-bgrt perl-File-HomeDir libxdmcp libglvnd libxft fribidi pango:bootstrap rrdtool lm_sensors mesa x11-server perl-Module-Build perl-NDBM_File systemtap python-pyparsing python-parsing; do
 	PACKAGE="${i/:*}"
 	if [ "$PACKAGE" = "systemd" ]; then
 		# FIXME this is nasty: bash-completion-devel is needed for p11-kit's build system,
@@ -144,7 +150,11 @@ for i in $LIBC:-crosscompilers ncurses:-cplusplus readline bash make ninja zlib-
 		# Special case: We want the -devel package for plugin-api.h, but we don't want
 		# the binaries to override the host architecture binaries in the chroot
 		sudo rpm -r /usr/$FULLTARGET -Uvh --force --noscripts --ignorearch --nodeps packages/${PACKAGE}/RPMS/*/*-devel*
-	elif [ "$i" != "$LIBC" -a "$i" != "ninja" -a "$i" != "make" -a "$i" != "gcc" -a "$i" != "filesystem" -a "$i" != "llvm" ]; then
+	elif [ "$i" = "llvm" ]; then
+		# We need LLVM libs in the buildroot for mesa, but we still need to run the HOST
+		# versions of binaries such as clang or llvm-objdump
+		sudo rpm -r /usr/$FULLTARGET -Uvh --force --noscripts --ignorearch --nodpes packages/${PACKAGE}/RPMS/*/lib*
+	elif [ "$i" != "$LIBC" -a "$i" != "ninja" -a "$i" != "make" -a "$i" != "gcc" -a "$i" != "filesystem" ]; then
 		# In the case of LIBC/binutils/gcc, better to keep the crosscompiler's package
 		# In the case of ninja/make/llvm, we need to run the HOST version, but
 		# cmake and friends prefer anything in the sysroot
@@ -153,3 +163,5 @@ for i in $LIBC:-crosscompilers ncurses:-cplusplus readline bash make ninja zlib-
 		sudo rpm -r /usr/$FULLTARGET -Uvh --force --noscripts --ignorearch --nodeps packages/${PACKAGE}/RPMS/*/*
 	fi
 done
+# Get rid of some subpackages that pull in too many extra dependencies for a bootstrap chroot
+rm -f packages/distro-release/RPMS/*/distro-release-desktop* packages/libsecret/RPMS/*/*-devel* packages/openssl/RPMS/*/openssl-perl* packages/systemd/RPMS/*/systemd-zsh-completion*
