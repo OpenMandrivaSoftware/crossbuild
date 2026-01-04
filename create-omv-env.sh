@@ -67,7 +67,7 @@ fi
 # Not a typo, as weird as it is, xbiff is actually needed (by mkcomposecache)
 # zsh is needed for curl to detect where to install zsh autocompletions, could
 # be optimized away
-sudo dnf -y install task-devel texinfo asciidoc 'perl(Pod::Html)' 'perl(open)' nettle libtasn1-tools cmake 'pkgconfig(systemd)' 'pkgconfig(xkeyboard-config)' 'pkgconfig(wayland-protocols)' bpftool 'pkgconfig(fdisk)' 'pkgconfig(tss2-esys)' 'pkgconfig(libbpf)' 'pkgconfig(pwquality)' 'pkgconfig(libqrencode)' 'pkgconfig(libkmod)' 'pkgconfig(libmicrohttpd)' 'pkgconfig(liblz4)' 'pkgconfig(libseccomp)' 'pkgconfig(pangocairo)' cross-${FULLTARGET}-binutils cross-${FULLTARGET}-gcc cross-${FULLTARGET}-libc cross-${FULLTARGET}-kernel-headers console-setup glibc-i18ndata lzip gtk-doc luajit-lpeg luajit-mpack 'cmake(LibSolv)' pyudev 'pkgconfig(dbus-1)' libmpc-devel publicsuffix-list slibtool x11-server-xvfb xbiff xkbcomp mkcomposecache x11-xtrans-devel scdoc 'perl(Time::Piece)' zsh doxygen graphviz python-pefile
+sudo dnf -y install task-devel texinfo asciidoc 'perl(Pod::Html)' 'perl(open)' nettle libtasn1-tools cmake 'pkgconfig(systemd)' 'pkgconfig(xkeyboard-config)' 'pkgconfig(wayland-protocols)' bpftool 'pkgconfig(fdisk)' 'pkgconfig(tss2-esys)' 'pkgconfig(libbpf)' 'pkgconfig(pwquality)' 'pkgconfig(libqrencode)' 'pkgconfig(libkmod)' 'pkgconfig(libmicrohttpd)' 'pkgconfig(liblz4)' 'pkgconfig(libseccomp)' 'pkgconfig(pangocairo)' cross-${FULLTARGET}-binutils cross-${FULLTARGET}-gcc cross-${FULLTARGET}-libc cross-${FULLTARGET}-kernel-headers console-setup glibc-i18ndata lzip gtk-doc luajit-lpeg luajit-mpack 'cmake(LibSolv)' pyudev 'pkgconfig(dbus-1)' libmpc-devel publicsuffix-list slibtool x11-server-xvfb xbiff xkbcomp mkcomposecache x11-xtrans-devel scdoc 'perl(Time::Piece)' zsh doxygen graphviz python-pefile rst2man python-pyelftools
 # FIXME this should really be fixed properly, but for now, this workaround will do:
 # pam detects the HOST systemd headers and then fails to build systemd related bits because
 # the target headers aren't there yet.
@@ -108,8 +108,8 @@ esac
 [ -e /usr/$FULLTARGET/lib/pkgconfig ] || [ -d /usr/$FULLTARGET/lib64 ] && sudo ln -sf ../lib64/pkgconfig /usr/$FULLTARGET/lib/pkgconfig
 [ -h /usr/$FULLTARGET/sys-root ] || sudo ln -sf . /usr/$FULLTARGET/sys-root
 
-# FIXME this is nasty, we should fix python instead
-sudo sed -i -e "s| 'LIBDIR':.*| 'LIBDIR': '/no/we/do/not/like/dashL/usr/lib',|" /usr/lib64/python3.11/_sysconfigdata__*.py
+# FIXME this is nasty, we should fix python instead [FIXME need to see if this is still needed with 3.14]
+#sudo sed -i -e "s| 'LIBDIR':.*| 'LIBDIR': '/no/we/do/not/like/dashL/usr/lib',|" /usr/lib64/python3.11/_sysconfigdata__*.py
 
 # Some notes for the build order (and reasons for packages you
 # might not expect to see in a core package set):
