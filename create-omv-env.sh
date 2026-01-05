@@ -67,7 +67,7 @@ fi
 # Not a typo, as weird as it is, xbiff is actually needed (by mkcomposecache)
 # zsh is needed for curl to detect where to install zsh autocompletions, could
 # be optimized away
-sudo dnf -y install task-devel texinfo asciidoc 'perl(Pod::Html)' 'perl(open)' nettle libtasn1-tools cmake 'pkgconfig(systemd)' 'pkgconfig(xkeyboard-config)' 'pkgconfig(wayland-protocols)' bpftool 'pkgconfig(fdisk)' 'pkgconfig(tss2-esys)' 'pkgconfig(libbpf)' 'pkgconfig(pwquality)' 'pkgconfig(libqrencode)' 'pkgconfig(libkmod)' 'pkgconfig(libmicrohttpd)' 'pkgconfig(liblz4)' 'pkgconfig(libseccomp)' 'pkgconfig(pangocairo)' cross-${FULLTARGET}-binutils cross-${FULLTARGET}-gcc cross-${FULLTARGET}-libc cross-${FULLTARGET}-kernel-headers console-setup glibc-i18ndata lzip gtk-doc luajit-lpeg luajit-mpack 'cmake(LibSolv)' pyudev 'pkgconfig(dbus-1)' libmpc-devel publicsuffix-list slibtool x11-server-xvfb xbiff xkbcomp mkcomposecache x11-xtrans-devel scdoc 'perl(Time::Piece)' zsh doxygen graphviz python-pefile rst2man python-pyelftools
+sudo dnf -y install task-devel texinfo asciidoc 'perl(Pod::Html)' 'perl(open)' nettle libtasn1-tools cmake 'pkgconfig(systemd)' 'pkgconfig(xkeyboard-config)' 'pkgconfig(wayland-protocols)' bpftool 'pkgconfig(fdisk)' 'pkgconfig(tss2-esys)' 'pkgconfig(libbpf)' 'pkgconfig(pwquality)' 'pkgconfig(libqrencode)' 'pkgconfig(libkmod)' 'pkgconfig(libmicrohttpd)' 'pkgconfig(liblz4)' 'pkgconfig(libseccomp)' 'pkgconfig(pangocairo)' cross-${FULLTARGET}-binutils cross-${FULLTARGET}-gcc cross-${FULLTARGET}-libc cross-${FULLTARGET}-kernel-headers console-setup glibc-i18ndata lzip gtk-doc luajit-lpeg luajit-mpack 'cmake(LibSolv)' pyudev 'pkgconfig(dbus-1)' libmpc-devel publicsuffix-list slibtool x11-server-xvfb xbiff xkbcomp mkcomposecache x11-xtrans-devel scdoc 'perl(Time::Piece)' zsh doxygen graphviz python-pefile rst2man python-pyelftools meson
 # FIXME this should really be fixed properly, but for now, this workaround will do:
 # pam detects the HOST systemd headers and then fails to build systemd related bits because
 # the target headers aren't there yet.
@@ -192,10 +192,10 @@ for i in $NEEDED; do
 		# versions of binaries such as clang or llvm-objdump
 		sudo rpm -r /usr/$FULLTARGET -Uvh --force --noscripts --ignorearch --nodeps packages/${PACKAGE}/RPMS/*/lib*
 	elif [ "$PACKAGE" = "systemd" ]; then
-		# We need to exclude systemd-oom for the time being, because the
+		# We need to exclude a few components for the time being, because the
 		# user(x)/group(x) dependency scheme doesn't work in crosscompiled
 		# packages
-		sudo rpm -r /usr/$FULLTARGET -Uvh --force --noscripts --ignorearch --nodeps $(ls packages/${PACKAGE}/RPMS/*/* |grep -v systemd-oom)
+		sudo rpm -r /usr/$FULLTARGET -Uvh --force --noscripts --ignorearch --nodeps $(ls packages/${PACKAGE}/RPMS/*/* |grep -vE 'systemd-(oom|hwdb|journal-remote|resolved)') || :
 	elif [ "$PACKAGE" = "util-linux" ]; then
 		# Remove it again (got installed a few lines earlier as a workaround)
 		sudo rpm -e --nodeps lib64systemd-devel || :
