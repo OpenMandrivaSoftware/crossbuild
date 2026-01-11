@@ -13,6 +13,7 @@ if [ -z "$1" ]; then
 	exit 1
 fi
 
+EXITCODE=0
 FULLTARGET="$(rpm --target=$RPMTARGET -E %{_target_platform})"
 SYSROOT=/usr/$FULLTARGET
 if [ ! -d $SYSROOT ]; then
@@ -49,6 +50,8 @@ for i in "$@"; do
 	[ -e .abf.yml ] && abf fetch
 	rm -rf BUILD RPMS SRPMS
 	echo "Running: rpmbuild -ba --target $RPMTARGET --without uclibc $EXTRA_RPMFLAGS --define \"_sourcedir `pwd`\" --define \"_builddir `pwd`/BUILD\" --define \"_rpmdir `pwd`/RPMS\" --define \"_srpmdir `pwd`/SRPMS\" *.spec"
-	rpmbuild -ba --nodeps --target $RPMTARGET --without uclibc $EXTRA_RPMFLAGS --define "_sourcedir `pwd`" --define "_builddir `pwd`/BUILD" --define "_rpmdir `pwd`/RPMS" --define "_srpmdir `pwd`/SRPMS" *.spec 2>&1 |tee build.log || exit 1
+	(set -o pipefail && rpmbuild -ba --nodeps --target $RPMTARGET --without uclibc $EXTRA_RPMFLAGS --define "_sourcedir `pwd`" --define "_builddir `pwd`/BUILD" --define "_rpmdir `pwd`/RPMS" --define "_srpmdir `pwd`/SRPMS" *.spec 2>&1 |tee build.log)
+	EXITCODE=$?
 	cd ..
 done
+exit $EXITCODE

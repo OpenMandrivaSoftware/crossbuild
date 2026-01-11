@@ -184,7 +184,10 @@ for i in $NEEDED; do
 		cd ../../../..
 		sudo rpm -r /usr/$FULLTARGET -Uvh --force --noscripts --nodeps packages/${PACKAGE}/RPMS/*/*
 	else
-		./build-package.sh -t $RPMTARGET $i
+		if ! ./build-package.sh -t $RPMTARGET $i; then
+			echo "$i failed to build."
+			exit 1
+		fi
 	fi
 
 	if [ "$i" = "binutils" ]; then
