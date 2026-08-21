@@ -47,10 +47,19 @@ for i in "$@"; do
 	rm -rf $pkg
 	git clone --depth 1 git@github.com:OpenMandrivaAssociation/$pkg
 	cd $pkg
+	if [ -d "$DIR/patches/$pkg" ]; then
+		for p in "$DIR/patches/$pkg"/*; do
+			[ -f "$p" ] || continue
+			echo "Applying local patch $p"
+			patch -p1 < "$p"
+		done
+	fi
 	[ -e .abf.yml ] && abf fetch
 	rm -rf BUILD RPMS SRPMS
-	echo "Running: rpmbuild -ba --target $RPMTARGET --without uclibc $EXTRA_RPMFLAGS --define \"_sourcedir `pwd`\" --define \"_builddir `pwd`/BUILD\" --define \"_rpmdir `pwd`/RPMS\" --define \"_srpmdir `pwd`/SRPMS\" *.spec"
-	(set -o pipefail && rpmbuild -ba --nodeps --target $RPMTARGET --without uclibc $EXTRA_RPMFLAGS --define "_sourcedir `pwd`" --define "_builddir `pwd`/BUILD" --define "_rpmdir `pwd`/RPMS" --define "_srpmdir `pwd`/SRPMS" *.spec 2>&1 |tee build.log)
+	# --target before --load: otherwise %%cross_compiling is baked as 0
+	# while the macros file is parsed.
+	echo "Running: rpmbuild --target $RPMTARGET --load $DIR/macros.cross-pkgconfig -ba --without uclibc $EXTRA_RPMFLAGS --define \"_sourcedir `pwd`\" --define \"_builddir `pwd`/BUILD\" --define \"_rpmdir `pwd`/RPMS\" --define \"_srpmdir `pwd`/SRPMS\" --define \"_crossbuild_home $DIR\" *.spec"
+	(set -o pipefail && rpmbuild --target $RPMTARGET --load "$DIR/macros.cross-pkgconfig" -ba --nodeps --without uclibc $EXTRA_RPMFLAGS --define "_sourcedir `pwd`" --define "_builddir `pwd`/BUILD" --define "_rpmdir `pwd`/RPMS" --define "_srpmdir `pwd`/SRPMS" --define "_crossbuild_home $DIR" *.spec 2>&1 |tee build.log)
 	EXITCODE=$?
 	cd ..
 done
