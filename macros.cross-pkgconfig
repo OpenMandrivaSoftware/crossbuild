@@ -29,32 +29,6 @@
         *":$_pc_root:"*) ;; \
         *) PKG_CONFIG_PATH="$_pc_root:$_cross_root/sys-root%{_datadir}/pkgconfig:%{_libdir}/pkgconfig:%{_datadir}/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}" ; export PKG_CONFIG_PATH ;; \
       esac ; \
-      _wrap="${RPM_BUILD_DIR:-%{_builddir}}/.rpm-cross-wrappers" ; \
-      mkdir -p "$_wrap" ; \
-      if [ -n "%{?_crossbuild_home}" ] && [ -f "%{_crossbuild_home}/pkg-config-cross" ]; then \
-        cp -f "%{_crossbuild_home}/pkg-config-cross" "$_wrap/pkg-config" ; \
-      else \
-        printf '%s\n' \
-          '#!/bin/sh' \
-          'var=0; flags=0' \
-          'for a in "$@"; do' \
-          '  case "$a" in' \
-          '  --variable|--variable=*|-variable|--print-variables) var=1 ;;' \
-          '  --cflags|--cflags-only-I|--cflags-only-other|--libs|--libs-only-L|--libs-only-other|--libs-only-l) flags=1 ;;' \
-          '  esac' \
-          'done' \
-          'if [ "$var" -eq 1 ] && [ "$flags" -eq 0 ]; then unset PKG_CONFIG_SYSROOT_DIR; fi' \
-          'exec /usr/bin/pkg-config "$@"' \
-          > "$_wrap/pkg-config" ; \
-      fi ; \
-      chmod +x "$_wrap/pkg-config" ; \
-      ln -sfn pkg-config "$_wrap/pkgconf" ; \
-      export PKG_CONFIG="$_wrap/pkg-config" ; \
-      export PKG_CONFIG_EXECUTABLE="$_wrap/pkg-config" ; \
-      case ":$PATH:" in \
-        *":$_wrap:"*) ;; \
-        *) PATH="$_wrap:$PATH" ; export PATH ;; \
-      esac ; \
       _py_config="" ; \
       for _pc in "$_cross_root"%{_bindir}/python3*-config "$_cross_root"%{_bindir}/python-config ; do \
         if [ -x "$_pc" ]; then _py_config="$_pc" ; break ; fi ; \

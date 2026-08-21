@@ -58,8 +58,8 @@ for i in "$@"; do
 	rm -rf BUILD RPMS SRPMS
 	# --target before --load: otherwise %%cross_compiling is baked as 0
 	# while the macros file is parsed.
-	echo "Running: rpmbuild --target $RPMTARGET --load $DIR/macros.cross-pkgconfig -ba --without uclibc $EXTRA_RPMFLAGS --define \"_sourcedir `pwd`\" --define \"_builddir `pwd`/BUILD\" --define \"_rpmdir `pwd`/RPMS\" --define \"_srpmdir `pwd`/SRPMS\" --define \"_crossbuild_home $DIR\" *.spec"
-	(set -o pipefail && rpmbuild --target $RPMTARGET --load "$DIR/macros.cross-pkgconfig" -ba --nodeps --without uclibc $EXTRA_RPMFLAGS --define "_sourcedir `pwd`" --define "_builddir `pwd`/BUILD" --define "_rpmdir `pwd`/RPMS" --define "_srpmdir `pwd`/SRPMS" --define "_crossbuild_home $DIR" *.spec 2>&1 |tee build.log)
+	echo "Running: rpmbuild --target $RPMTARGET --load $DIR/macros.cross-pkgconfig -ba --without uclibc $EXTRA_RPMFLAGS --define \"_sourcedir `pwd`\" --define \"_builddir `pwd`/BUILD\" --define \"_rpmdir `pwd`/RPMS\" --define \"_srpmdir `pwd`/SRPMS\" *.spec"
+	(set -o pipefail && rpmbuild --target $RPMTARGET --load "$DIR/macros.cross-pkgconfig" -ba --nodeps --without uclibc $EXTRA_RPMFLAGS --define "_sourcedir `pwd`" --define "_builddir `pwd`/BUILD" --define "_rpmdir `pwd`/RPMS" --define "_srpmdir `pwd`/SRPMS" *.spec 2>&1 |tee build.log)
 	EXITCODE=$?
 	cd ..
 done
