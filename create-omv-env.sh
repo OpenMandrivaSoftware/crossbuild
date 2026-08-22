@@ -54,37 +54,10 @@ if $WIPE; then
 	sudo rm -rf /usr/${FULLTARGET}
 fi
 
-# Host side dependencies... Probably nowhere near complete
-# FIXME requiring cmake(LibSolv) on the host side is a nasty workaround
-# for libdnf's cmake files not finding FindLibSolv in the sysroot. Since
-# all it produces is -lsolv, the fact that it's taking stuff from the
-# host doesn't have serious drawbacks, so we can leave it for now.
-# FIXME Host pyudev is required to make lvm2's configure script happy,
-# but it should really check the sysroot instead.
-# FIXME rrdtool looks for host pangocairo headers, but really needs
-# target headers
-# FIXME glibmm and similar rarely used cruft is required by enchant2, which
-# in turn is required by rpmlint. Trim down rpmlint at some point?
-# Not a typo, as weird as it is, xbiff is actually needed (by mkcomposecache)
-# zsh is needed for curl to detect where to install zsh autocompletions, could
-# be optimized away
-# elinks is needed by pam to generate man pages
-sudo dnf -y install task-devel texinfo asciidoc 'perl(Pod::Html)' 'perl(open)' nettle libtasn1-tools cmake 'pkgconfig(systemd)' 'pkgconfig(xkeyboard-config)' 'pkgconfig(wayland-protocols)' bpftool 'pkgconfig(fdisk)' 'pkgconfig(tss2-esys)' 'pkgconfig(libbpf)' 'pkgconfig(pwquality)' 'pkgconfig(libqrencode)' 'pkgconfig(libkmod)' 'pkgconfig(libmicrohttpd)' 'pkgconfig(liblz4)' 'pkgconfig(libseccomp)' 'pkgconfig(pangocairo)' cross-${FULLTARGET}-binutils cross-${FULLTARGET}-gcc cross-${FULLTARGET}-libc cross-${FULLTARGET}-kernel-headers console-setup glibc-i18ndata lzip gtk-doc luajit-lpeg luajit-mpack 'cmake(LibSolv)' pyudev 'pkgconfig(dbus-1)' libmpc-devel publicsuffix-list slibtool x11-server-xvfb xbiff xkbcomp mkcomposecache x11-xtrans-devel scdoc 'perl(Time::Piece)' zsh doxygen graphviz python-pefile rst2man python-pyelftools meson 'python3.14dist(myst-parser)' groff flang python-sphinx python-sphinx-automodapi python-furo elinks docbook5-schemas docbook-style-xsl-ns xmlto bison make gettext libtool locales-extra-charsets po4a itstool appstream swig boost-build lib64girepository-devel
-# FIXME this should really be fixed properly, but for now, this workaround will do:
-# pam detects the HOST systemd headers and then fails to build systemd related bits because
-# the target headers aren't there yet.
-# To make matters worse, we need HOST dbus-1 headers to build systemd (correctly, because it
-# needs to build a native version of generator tools), but dbus-1 devel depends on systemd
-# devel.
-# Remove this once crosscompiling pam is fixed.
-sudo rpm -e --nodeps lib64systemd-devel || :
-# FIXME If HOST valgrind devel files are detected, mesa tries to use TARGET valgrind
-# and fails because it doesn't exist yet
-sudo dnf -y erase valgrind-devel || :
-# FIXME the presence of bash-completion.pc on the host system causes systemd
-# and other meson based builds to install the completions file in a bogus
-# location. For now, let's just make sure the file isn't there...
-sudo dnf -y erase bash-completion-devel || :
+# Host side dependencies. xbiff is actually needed (by mkcomposecache).
+# zsh is needed for curl to detect where to install zsh autocompletions.
+# elinks is needed by pam to generate man pages.
+sudo dnf -y install task-devel texinfo asciidoc 'perl(Pod::Html)' 'perl(open)' nettle libtasn1-tools cmake 'pkgconfig(systemd)' 'pkgconfig(xkeyboard-config)' 'pkgconfig(wayland-protocols)' bpftool 'pkgconfig(fdisk)' 'pkgconfig(tss2-esys)' 'pkgconfig(libbpf)' 'pkgconfig(pwquality)' 'pkgconfig(libqrencode)' 'pkgconfig(libkmod)' 'pkgconfig(libmicrohttpd)' 'pkgconfig(liblz4)' 'pkgconfig(libseccomp)' cross-${FULLTARGET}-binutils cross-${FULLTARGET}-gcc cross-${FULLTARGET}-libc cross-${FULLTARGET}-kernel-headers console-setup glibc-i18ndata lzip gtk-doc luajit-lpeg luajit-mpack 'pkgconfig(dbus-1)' libmpc-devel publicsuffix-list slibtool x11-server-xvfb xbiff xkbcomp mkcomposecache x11-xtrans-devel scdoc 'perl(Time::Piece)' zsh doxygen graphviz python-pefile rst2man python-pyelftools meson 'python3.14dist(myst-parser)' groff flang python-sphinx python-sphinx-automodapi python-furo elinks docbook5-schemas docbook-style-xsl-ns xmlto bison make gettext libtool locales-extra-charsets po4a itstool appstream swig boost-build lib64girepository-devel
 
 ARCH="$(echo $FULLTARGET |cut -d- -f1)"
 case $ARCH in
@@ -106,12 +79,7 @@ musl*)
 	;;
 esac
 
-# FIXME we should fix the search path instead
-[ -e /usr/$FULLTARGET/lib/pkgconfig ] || [ -d /usr/$FULLTARGET/lib64 ] && sudo ln -sf ../lib64/pkgconfig /usr/$FULLTARGET/lib/pkgconfig
 [ -h /usr/$FULLTARGET/sys-root ] || sudo ln -sf . /usr/$FULLTARGET/sys-root
-
-# FIXME this is nasty, we should fix python instead [FIXME need to see if this is still needed with 3.14]
-#sudo sed -i -e "s| 'LIBDIR':.*| 'LIBDIR': '/no/we/do/not/like/dashL/usr/lib',|" /usr/lib64/python3.11/_sysconfigdata__*.py
 
 # Some notes for the build order (and reasons for packages you
 # might not expect to see in a core package set):
@@ -149,7 +117,7 @@ OMV_VERSION=cooker
 PKGS=${ABF_DOWNLOADS}/${OMV_VERSION}/repository/x86_64/main/release/
 curl -s -L $PKGS |grep '^<a' |cut -d'"' -f2 >PACKAGES
 
-NEEDED="$LIBC:-crosscompilers ncurses:-cplusplus readline bash make ninja zlib-ng gzip bzip2 xz libb2 lz4 zstd file libarchive libtirpc:-gss libnsl libxcrypt gdbm lksctp-tools openssl sltdl sqlite cracklib:-python cyrus-sasl:bootstrap:-mysql:-pgsql:-krb5 libevent perl openldap libcap-ng audit:-python:-systemd pam:bootstrap attr acl lua:-pgo libgpg-error libgcrypt libcap expat pcre2 json-c libssh libunistring libidn2 libpsl curl:-gnutls:-mbedtls:-kerberos libmicrohttpd elfutils libbpf util-linux:bootstrap libpwquality:-python x11-proto-devel:-python2 libxau libxcb x11-sgml-doctools x11-xtrans-devel libx11 libxkbfile xkbcomp dbus:-systemd tpm2-tss:-ftdi libpng:-pgo qrencode kmod gmp nettle:-pgo libtasn1 brotli:-pgo:-python libffi bash-completion-devel p11-kit:bootstrap unbound gnutls:-pgo icu libxml2:-pgo:-python wayland wayland-protocols-devel libxkbcommon glib2.0:-pgo:-gtkdoc:-introspection:-systemtap:-sysprof libseccomp python-pyelftools systemd:bootstrap pam popt libxrender libxext libXrandr vulkan-headers vulkan-loader mpfr libmpc isl binutils:-gold python:-tkinter bubblewrap rpm:-openmp:-selinux:-audit z3 llvm:-pymlir:-crosscrt grep sed gawk coreutils pkgconf kbd python:-tkinter filesystem pbzip2 rootcerts pigz:-pgo libxcvt xcb-util-renderutil xcb-util xcb-util-image xcb-util-wm xcb-util-keysyms pixman:-pgo libfontenc graphite2 freetype:-rsvg:-harfbuzz fontconfig liblzo cairo harfbuzz:-gir freetype:-rsvg libxfont2 kernel:-desktop:-desktop_gcc:-server_gcc xkeyboard-config xkeyboard-config-devel crontabs libedit python-six lz4 setup basesystem lua libmd libbsd shadow xdg-utils which unzip uchardet groff:-x11 fuse e2fsprogs procps-ng psmisc time wget findutils patch rootfiles etcskel diffutils publicsuffix-list publicsuffix-list-dafsa libksba npth libassuan autoconf automake slibtool gnupg cmake:bootstrap meson m4 common-licenses distro-release hostname iputils less libutempter logrotate net-tools:-bluetooth libsecret:-gir pinentry:-qt6:-qt5:-gtk2:-gnome:-fltk xxhash debugedit dwz gdb rpm-helper lsb-release ppl shared-mime-info go-srpm-macros python-packaging python-pkg-resources rust-srpm-macros rpmlint spec-helper zchunk libsolv check librepo yaml libmodulemd:-gir:-python cppunit toml11 fmt sdbus-cpp libxmlb:-gir libfyaml libstemmer appstream:-qt6:-vala:-gir swig yaml-cpp libpkgmanifest dnf:-ruby desktop-file-utils libice libsm libxt libxmu xset xprop chrpath perl-srpm-macros libaio pyudev keyutils libnvme lvm2 argon2 cryptsetup systemd gettext:-check:-java:-csharp:-emacs run-parts pcre onig slang newt chkconfig perl-File-HomeDir libxdmcp libglvnd libxft fribidi pango:bootstrap rrdtool lm_sensors libdrm libunwind:-tests libxshmfence libxfixes libva libvdpau libxxf86vm mesa:-rust:-rusticl libepoxy libsepol libselinux:bootstrap libpciaccess xlibre perl-Module-Build boost systemtap:-avahi:-java python-parsing filesystem rgb gcc:-crosscompilers perl-File-Which libevdev abattis-cantarell-fonts plymouth mkcomposecache xauth efi-filesystem x11-font-alias x11-font-cursor-misc x11-font-misc-misc mkfontdir libfontenc mkfontscale hwdata mtdev libinput:bootstrap x11-driver-input-libinput fonts-ttf-dejavu fontpackages-filesystem dracut timezone duktape polkit:-gir satyr augeas bash-completion python-pybeam python-enchant python-magic pyxdg python-tomli python-pip libcomps glu libxi freeglut hunspell python-setuptools python-wheel python-tomli-w python-flit-core python-dateutil aspell python-construct python-zstandard python-systemd libsigc-2.0 glibmm2.4 libxmlpp hfst-ospell libvoikko hspell enchant2 mm-common perl-XML-Parser voikko-fi gptfdisk userspace-rcu multipath-tools sudo libusb usbutils sysfsutils dbus-broker grub2 gnu-config perl-Class-Inspector perl-File-ShareDir console-setup x11-data-cursor-themes httplib c-ares pciutils efivar efibootmgr vim:-gui:-ruby:-lua car"
+NEEDED="$LIBC:-crosscompilers ncurses:-cplusplus readline bash make ninja zlib-ng gzip bzip2 xz libb2 lz4 zstd file libarchive libtirpc:-gss libnsl libxcrypt gdbm lksctp-tools openssl sltdl sqlite cracklib:-python cyrus-sasl:bootstrap:-mysql:-pgsql:-krb5 libevent perl openldap libcap-ng audit:-python:-systemd pam:bootstrap attr acl lua:-pgo libgpg-error libgcrypt libcap expat pcre2 json-c libssh libunistring libidn2 libpsl curl:-gnutls:-mbedtls:-kerberos libmicrohttpd elfutils libbpf util-linux:bootstrap libpwquality:-python x11-proto-devel:-python2 libxau libxcb x11-sgml-doctools x11-xtrans-devel libx11 libxkbfile xkbcomp dbus:-systemd tpm2-tss:-ftdi libpng:-pgo qrencode kmod gmp nettle:-pgo libtasn1 brotli:-pgo:-python libffi bash-completion-devel p11-kit:bootstrap unbound gnutls:-pgo icu libxml2:-pgo:-python wayland wayland-protocols-devel libxkbcommon glib2.0:-pgo:-gtkdoc:-introspection:-systemtap:-sysprof libseccomp python-pyelftools systemd:bootstrap pam popt libxrender libxext libXrandr vulkan-headers vulkan-loader mpfr libmpc isl binutils:-gold python:-tkinter bubblewrap rpm:-openmp:-selinux:-audit z3 llvm:-pymlir:-crosscrt grep sed gawk coreutils pkgconf kbd python:-tkinter filesystem pbzip2 rootcerts pigz:-pgo libxcvt xcb-util-renderutil xcb-util xcb-util-image xcb-util-wm xcb-util-keysyms pixman:-pgo libfontenc graphite2 freetype:-rsvg:-harfbuzz fontconfig liblzo cairo harfbuzz:-gir freetype:-rsvg libxfont2 kernel:-desktop:-desktop_gcc:-server_gcc xkeyboard-config xkeyboard-config-devel crontabs libedit python-six lz4 setup basesystem lua libmd libbsd shadow xdg-utils which unzip uchardet groff:-x11 fuse e2fsprogs procps-ng psmisc time wget findutils patch rootfiles etcskel diffutils publicsuffix-list publicsuffix-list-dafsa libksba npth libassuan autoconf automake slibtool gnupg cmake:bootstrap meson m4 common-licenses distro-release hostname iputils less libutempter logrotate net-tools:-bluetooth libsecret:-gir pinentry:-qt6:-qt5:-gtk2:-gnome:-fltk xxhash debugedit dwz gdb rpm-helper lsb-release ppl shared-mime-info go-srpm-macros python-packaging python-pkg-resources rust-srpm-macros rpmlint spec-helper zchunk libsolv check librepo yaml libmodulemd:-gir:-python cppunit toml11 fmt sdbus-cpp libxmlb:-gir libfyaml libstemmer appstream:-qt6:-vala:-gir swig yaml-cpp libpkgmanifest dnf:-ruby desktop-file-utils libice libsm libxt libxmu xset xprop chrpath perl-srpm-macros libaio pyudev keyutils libnvme lvm2 argon2 cryptsetup systemd gettext:-check:-java:-csharp:-emacs run-parts pcre onig slang newt chkconfig perl-File-HomeDir libxdmcp libglvnd libxft fribidi pango:bootstrap rrdtool lm_sensors libdrm libunwind:-tests libxshmfence libxfixes libva libvdpau libxxf86vm mesa:-rust:-rusticl libepoxy libsepol libselinux:bootstrap libpciaccess xlibre perl-Module-Build boost systemtap:-avahi:-java python-parsing filesystem rgb gcc:-crosscompilers perl-File-Which libevdev abattis-cantarell-fonts plymouth mkcomposecache xauth efi-filesystem x11-font-alias x11-font-cursor-misc x11-font-misc-misc mkfontdir libfontenc mkfontscale hwdata mtdev libinput:bootstrap x11-driver-input-libinput fonts-ttf-dejavu fontpackages-filesystem dracut timezone duktape polkit:-gir satyr augeas bash-completion python-pybeam hunspell enchant2:-aspell:-hspell:-voikko python-enchant python-magic pyxdg python-tomli python-pip libcomps glu libxi freeglut python-setuptools python-wheel python-tomli-w python-flit-core python-dateutil python-construct python-zstandard python-systemd perl-XML-Parser gptfdisk userspace-rcu multipath-tools sudo libusb usbutils sysfsutils dbus-broker grub2 gnu-config perl-Class-Inspector perl-File-ShareDir console-setup x11-data-cursor-themes httplib c-ares pciutils efivar efibootmgr vim:-gui:-ruby:-lua car"
 # Not needed for a chroot, but useful for images generated with os-image-builder
 EXTRAS="dracut-modules-growroot cloud-utils"
 # Packages needed for the openmandriva/builder docker container
@@ -177,27 +145,11 @@ fi
 
 for i in $NEEDED; do
 	PACKAGE="${i/:*}"
-	if [ "$PACKAGE" = "systemd" ]; then
-		# FIXME this is nasty: bash-completion-devel is needed for p11-kit's, dnf's and
-		# libsecret's build system, but having it in the chroot breaks building systemd
-		# by making it install its completions in the wrong place.
-		# Installing a build dependency for one package and removing it before another is
-		# built "fixes" the problem, but of course isn't a nice thing to do.
-		sudo rpm -r /usr/$FULLTARGET -e bash-completion-devel || :
-	elif [ "$PACKAGE" = "dnf" -o "$PACKAGE" = "libsecret" ]; then
-		# dnf and libsecret need it...
-		sudo rpm -r /usr/$FULLTARGET -Uvh --force --noscripts --nodeps packages/bash-completion-devel/RPMS/*/*
-	elif [ "$PACKAGE" = "util-linux" ]; then
-		# Workaround for util-linux checking the host system for systemd
-		# to see if tmpfiles.d and friends should be installed
-		sudo dnf -y install 'pkgconfig(systemd)'
-	elif [ "$PACKAGE" = "llvm" ]; then
-		# FIXME why doesn't llvm's build system find flang?
-		export FC=/usr/bin/flang
-	fi
-	if [ "$PACKAGE" != "cloud-utils" ] && grep -q "^${PACKAGE}-[0-9].*\.noarch\.rpm" PACKAGES; then
+	if [ "$PACKAGE" != "cloud-utils" ] && [ "$PACKAGE" != "python-enchant" ] && grep -q "^${PACKAGE}-[0-9].*\.noarch\.rpm" PACKAGES; then
 		# We can save some time on noarch packages...
 		# cloud-utils is excepted from this because we need to build its subpackage growpart
+		# python-enchant is excepted because the cooker noarch is an older
+		# python and we need python%{pyver}dist(pyenchant)
 		P=$(grep "^${PACKAGE}-[0-9].*" PACKAGES |tail -n1)
 		mkdir -p packages/${PACKAGE}/RPMS/noarch
 		cd packages/${PACKAGE}/RPMS/noarch
@@ -225,10 +177,6 @@ for i in $NEEDED; do
 		# user(x)/group(x) dependency scheme doesn't work in crosscompiled
 		# packages
 		sudo rpm -r /usr/$FULLTARGET -Uvh --force --noscripts --ignorearch --nodeps $(ls packages/${PACKAGE}/RPMS/*/* |grep -vE 'systemd-(oom|hwdb|journal-remote|resolved)') || :
-	elif [ "$PACKAGE" = "util-linux" ]; then
-		# Remove it again (got installed a few lines earlier as a workaround)
-		sudo rpm -e --nodeps lib64systemd-devel || :
-		sudo rpm -r /usr/$FULLTARGET -Uvh --force --noscripts --ignorearch --nodeps packages/${PACKAGE}/RPMS/*/*
 	elif [ "$PACKAGE" != "$LIBC" -a "$PACKAGE" != "ninja" -a "$PACKAGE" != "make" -a "$PACKAGE" != "gcc" -a "$PACKAGE" != "filesystem" ]; then
 		# In the case of LIBC/binutils/gcc, better to keep the crosscompiler's package
 		# In the case of ninja/make/llvm, we need to run the HOST version, but
