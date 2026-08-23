@@ -189,24 +189,30 @@ for i in $NEEDED; do
 		sudo rpm -r /usr/$FULLTARGET -Uvh --force --noscripts --ignorearch --nodeps packages/${PACKAGE}/RPMS/*/*
 	fi
 	# Dynamic linker must be visible at both /lib and /lib64 inside
-	# the sysroot. clang's PT_INTERP is arch-dependent (/lib on
-	# riscv64, /lib64 on loongarch64); cross-*-libc and packaged
-	# glibc also disagree on the canonical path. qemu uses
-	# QEMU_LD_PREFIX + PT_INTERP, so a missing side makes target
-	# binaries unrunnable. Relative links only -- rpm -r leaves
-	# glibc's absolute /lib -> /lib64 dangling outside the sysroot.
+	# a 64-bit sysroot. clang's PT_INTERP is /lib on riscv64 and
+	# /lib64 on loongarch64; qemu uses QEMU_LD_PREFIX + that path.
+	# 32-bit loaders stay in /lib only. Relative links -- rpm -r
+	# leaves glibc's absolute /lib -> /lib64 dangling outside the
+	# sysroot.
 	sys=/usr/$FULLTARGET
-	sudo mkdir -p "$sys/lib" "$sys/lib64"
-	for src in "$sys/lib64"/ld-linux-*.so.* "$sys/lib"/ld-linux-*.so.*; do
+	sudo mkdir -p "$sys/lib"
+	for src in "$sys/lib64"/ld-linux-*.so.*; do
 		[ -e "$src" ] || continue
 		base=$(basename "$src")
-		if [ -e "$sys/lib64/$base" ] && [ ! -e "$sys/lib/$base" ]; then
-			sudo ln -sfn ../lib64/"$base" "$sys/lib/$base"
-		fi
-		if [ -e "$sys/lib/$base" ] && [ ! -e "$sys/lib64/$base" ]; then
-			sudo ln -sfn ../lib/"$base" "$sys/lib64/$base"
-		fi
+		[ -e "$sys/lib/$base" ] || sudo ln -sfn ../lib64/"$base" "$sys/lib/$base"
 	done
+	case $FULLTARGET in
+	arm*|i[3-6]86*)
+		;;
+	*)
+		sudo mkdir -p "$sys/lib64"
+		for src in "$sys/lib"/ld-linux-*.so.*; do
+			[ -e "$src" ] || continue
+			base=$(basename "$src")
+			[ -e "$sys/lib64/$base" ] || sudo ln -sfn ../lib/"$base" "$sys/lib64/$base"
+		done
+		;;
+	esac
 	# Target wayland-scanner is a riscv64 ELF. Meson looks it up via
 	# pkg-config (PKG_CONFIG_SYSROOT_DIR prefixes the path) and tries
 	# to run it; qemu cannot find the riscv64 interpreter on /lib.
