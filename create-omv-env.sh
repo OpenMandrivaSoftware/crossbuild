@@ -1,6 +1,9 @@
 #!/bin/sh
 set -e
 
+SCRIPTDIR=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
+cd "$SCRIPTDIR"
+
 keepsudoalive() {
 	# Keep sudo timestamp alive so we don't get timeouts
 	# just because someone doesn't want to sit through a
@@ -10,8 +13,35 @@ keepsudoalive() {
 	(sleep 4m; keepsudoalive) &>/dev/null &
 }
 
+usage() {
+	cat >&2 <<EOF
+Usage: $0 [options] SET [SET...]
+
+Options:
+	-w		Wipe the target sysroot first
+	-r PACKAGE	Resume at PACKAGE
+	-t TARGET	rpm target (default: riscv64-linux)
+
+A bare TARGET token (e.g. loongarch64-linux) is also accepted among
+the positional arguments.
+
+Sets are files in sets/ and may be combined, e.g.
+	$0 core
+	$0 os-image-builder
+	$0 neovim
+	$0 core os-image-builder neovim
+
+Available sets:
+EOF
+	if [ -d "$SCRIPTDIR/sets" ]; then
+		ls "$SCRIPTDIR/sets" | sed 's/^/	/' >&2
+	fi
+}
+
 WIPE=false
-while getopts "wr:" opt; do
+RPMTARGET=riscv64-linux
+RESUME=
+while getopts "whr:t:" opt; do
 	case $opt in
 	w)
 		# Wipe out previous root to make sure none of the script's
@@ -22,15 +52,59 @@ while getopts "wr:" opt; do
 		# Resume an aborted build process at the given package
 		RESUME=$OPTARG
 		;;
+	t)
+		RPMTARGET=$OPTARG
+		;;
+	h)
+		usage
+		exit 0
+		;;
+	*)
+		usage
+		exit 1
+		;;
 	esac
 done
 shift $((OPTIND-1))
 
-if [ -z "$1" ]; then
-	RPMTARGET=riscv64-linux
-else
-	RPMTARGET="$1"
+SETS=
+while [ $# -gt 0 ]; do
+	case $1 in
+	*/*)
+		echo "Invalid set name: $1" >&2
+		exit 1
+		;;
+	esac
+	if [ -f "$SCRIPTDIR/sets/$1" ]; then
+		already=
+		for s in $SETS; do
+			if [ "$s" = "$1" ]; then
+				already=1
+				break
+			fi
+		done
+		if [ -z "$already" ]; then
+			SETS="$SETS $1"
+		fi
+	else
+		probe=$(rpm --target="$1" -E '%{_target_platform}' 2>/dev/null || true)
+		if [ -n "$probe" ] && [ "$probe" != "%{_target_platform}" ]; then
+			RPMTARGET=$1
+		else
+			echo "Unknown set or target: $1" >&2
+			usage
+			exit 1
+		fi
+	fi
+	shift
+done
+SETS=${SETS# }
+if [ -z "$SETS" ]; then
+	echo "No set specified." >&2
+	usage
+	exit 1
 fi
+
 FULLTARGET=$(rpm --target=$RPMTARGET -E %{_target_platform})
 if [ "$FULLTARGET" = "%{_target_platform}" ]; then
 	cat >/dev/stderr <<EOF
@@ -46,6 +120,7 @@ EOF
 fi
 
 echo "Targeting $RPMTARGET = $FULLTARGET"
+echo "Sets: $SETS"
 
 keepsudoalive
 
@@ -76,6 +151,9 @@ gnu*)
 	;;
 musl*)
 	LIBC=musl
+	;;
+uclibc*|uClibc*)
+	LIBC=uclibc
 	;;
 esac
 
@@ -117,9 +195,27 @@ OMV_VERSION=cooker
 PKGS=${ABF_DOWNLOADS}/${OMV_VERSION}/repository/x86_64/main/release/
 curl -s -L $PKGS |grep '^<a' |cut -d'"' -f2 >PACKAGES
 
-NEEDED="$LIBC:-crosscompilers ncurses:-cplusplus readline bash make ninja zlib-ng gzip bzip2 xz libb2 lz4 zstd file libarchive libtirpc:-gss libnsl libxcrypt gdbm lksctp-tools openssl sltdl sqlite cracklib:-python cyrus-sasl:bootstrap:-mysql:-pgsql:-krb5 libevent perl openldap libcap-ng audit:-python:-systemd pam:bootstrap attr acl lua:-pgo libgpg-error libgcrypt libcap expat pcre2 json-c libssh libunistring libidn2 libpsl curl:-gnutls:-mbedtls:-kerberos libmicrohttpd elfutils libbpf util-linux:bootstrap libpwquality:-python x11-proto-devel:-python2 libxau libxcb x11-sgml-doctools x11-xtrans-devel libx11 libxkbfile xkbcomp dbus:-systemd tpm2-tss:-ftdi libpng:-pgo qrencode kmod gmp nettle:-pgo libtasn1 brotli:-pgo:-python libffi bash-completion-devel p11-kit:bootstrap unbound gnutls:-pgo icu libxml2:-pgo:-python wayland wayland-protocols-devel libxkbcommon glib2.0:-pgo:-gtkdoc:-introspection:-systemtap:-sysprof libseccomp python-pyelftools systemd:bootstrap pam popt libxrender libxext libXrandr vulkan-headers vulkan-loader mpfr libmpc isl binutils:-gold python:-tkinter bubblewrap rpm:-openmp:-selinux:-audit z3 llvm:-pymlir:-crosscrt grep sed gawk coreutils pkgconf kbd python:-tkinter filesystem pbzip2 rootcerts pigz:-pgo libxcvt xcb-util-renderutil xcb-util xcb-util-image xcb-util-wm xcb-util-keysyms pixman:-pgo libfontenc graphite2 freetype:-rsvg:-harfbuzz fontconfig liblzo cairo harfbuzz:-gir freetype:-rsvg libxfont2 kernel:-desktop:-desktop_gcc:-server_gcc xkeyboard-config xkeyboard-config-devel crontabs libedit python-six lz4 setup basesystem lua libmd libbsd shadow xdg-utils which unzip uchardet groff:-x11 fuse e2fsprogs procps-ng psmisc time wget findutils patch rootfiles etcskel diffutils publicsuffix-list publicsuffix-list-dafsa libksba npth libassuan autoconf automake slibtool gnupg cmake:bootstrap meson m4 distro-release hostname iputils less libutempter logrotate net-tools:-bluetooth libsecret:-gir pinentry:-qt6:-qt5:-gtk2:-gnome:-fltk xxhash debugedit dwz gdb rpm-helper lsb-release ppl shared-mime-info go-srpm-macros python-packaging python-pkg-resources rust-srpm-macros rpmlint spec-helper zchunk libsolv check librepo yaml libmodulemd:-gir:-python cppunit toml11 fmt sdbus-cpp libxmlb:-gir libfyaml libstemmer appstream:-qt6:-vala:-gir swig yaml-cpp libpkgmanifest dnf:-ruby desktop-file-utils libice libsm libxt libxmu xset xprop chrpath perl-srpm-macros libaio pyudev keyutils libnvme lvm2 argon2 cryptsetup systemd gettext:-check:-java:-csharp:-emacs run-parts pcre onig slang newt chkconfig perl-File-HomeDir libxdmcp libglvnd libxft fribidi pango:bootstrap rrdtool lm_sensors libdrm libunwind:-tests libxshmfence libxfixes libva libvdpau libxxf86vm mesa:-rust:-rusticl libepoxy libsepol libselinux:bootstrap libpciaccess xlibre perl-Module-Build boost systemtap:-avahi:-java python-parsing filesystem rgb gcc:-crosscompilers perl-File-Which libevdev abattis-cantarell-fonts plymouth mkcomposecache xauth efi-filesystem x11-font-alias x11-font-cursor-misc x11-font-misc-misc mkfontdir libfontenc mkfontscale hwdata mtdev libinput:bootstrap x11-driver-input-libinput fonts-ttf-dejavu fontpackages-filesystem dracut timezone duktape polkit:-gir satyr augeas bash-completion python-pybeam hunspell enchant2:-aspell:-hspell:-voikko python-enchant python-magic pyxdg python-tomli python-pip libcomps glu libxi freeglut python-setuptools python-wheel python-tomli-w python-flit-core python-dateutil python-construct python-zstandard python-systemd perl-XML-Parser gptfdisk userspace-rcu multipath-tools sudo libusb usbutils sysfsutils dbus-broker grub2 gnu-config perl-Class-Inspector perl-File-ShareDir console-setup x11-data-cursor-themes httplib c-ares pciutils efivar efibootmgr vim:-gui:-ruby:-lua car"
-# Not needed for a chroot, but useful for images generated with os-image-builder
-EXTRAS="dracut-modules-growroot cloud-utils"
+NEEDED=
+for setname in $SETS; do
+	echo "Loading set $setname"
+	while IFS= read -r line || [ -n "$line" ]; do
+		case $line in
+		''|'#'*)
+			continue
+			;;
+		esac
+		line=${line%%#*}
+		for tok in $line; do
+			case $tok in
+			LIBC|LIBC:*)
+				tok="$LIBC${tok#LIBC}"
+				;;
+			esac
+			NEEDED="$NEEDED $tok"
+		done
+	done < "$SCRIPTDIR/sets/$setname"
+done
+NEEDED=${NEEDED# }
 # Packages needed for the openmandriva/builder docker container
 BUILDER_PACKAGES="mock git builder-c rpmdevtools python-pyyaml nosync python-magic"
 
@@ -172,6 +268,25 @@ for i in $NEEDED; do
 		# versions of binaries such as clang or llvm-objdump.
 		# Compare $PACKAGE, not $i: the NEEDED token is llvm:-pymlir:-crosscrt.
 		sudo rpm -r /usr/$FULLTARGET -Uvh --force --noscripts --ignorearch --nodeps packages/${PACKAGE}/RPMS/*/lib*
+		# Host clang --rtlib=compiler-rt looks in its own resource
+		# dir for $FULLTARGET/libclang_rt.builtins.a. Native llvm
+		# ships that only for triples it built with crosscrt; a
+		# bootstrap target may not be there. Copy builtins from
+		# the clang RPM we just built (do not install the RPM —
+		# that would replace host clang).
+		clang_rpm=$(ls packages/${PACKAGE}/RPMS/*/clang-[0-9]*.rpm 2>/dev/null | head -n1)
+		if [ -n "$clang_rpm" ]; then
+			resdir=$(clang --print-resource-dir)
+			dest="$resdir/lib/$FULLTARGET"
+			rtmp=$(mktemp -d)
+			rpm2cpio "$clang_rpm" | (cd "$rtmp" && cpio -idmu --quiet)
+			src=$(find "$rtmp" -type d -name "$FULLTARGET" | head -n1)
+			if [ -d "$src" ]; then
+				sudo mkdir -p "$dest"
+				sudo cp -a "$src"/. "$dest"/
+			fi
+			rm -rf "$rtmp"
+		fi
 	elif [ "$PACKAGE" = "systemd" ]; then
 		# We need to exclude a few components for the time being, because the
 		# user(x)/group(x) dependency scheme doesn't work in crosscompiled

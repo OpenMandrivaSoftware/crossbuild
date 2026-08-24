@@ -1,0 +1,23 @@
+# neovim and the libraries it needs.
+# lua-mpack:-lua keeps luajit-mpack only.
+# libluv:-lua skips the Lua 5.3 bindings.
+# tree-sitter:-rust builds the C library only (no cargo CLI).
+luajit
+lua-lpeg
+lua-mpack:-lua
+libuv
+libluv:-lua
+msgpack
+unibilium
+libtermkey
+libvterm
+jemalloc
+tree-sitter:-rust
+tree-sitter-c
+tree-sitter-lua
+tree-sitter-markdown
+tree-sitter-query
+tree-sitter-vim
+tree-sitter-vimdoc
+utf8proc
+neovim

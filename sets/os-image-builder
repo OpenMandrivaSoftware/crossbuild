@@ -1,0 +1,24 @@
+# Packages useful for images generated with os-image-builder.
+# Not required for a leftover-free chroot.
+#
+# cloud-initramfs-tools ships dracut-modules-growroot; cloud-utils ships
+# growpart (Requires: cloud-utils-growpart).
+# networkmanager:bootstrap skips optional plugin stacks we do not
+# bootstrap (ppp/wwan/bluetooth/team/ovs/gir/docs).
+# iproute2 is Requires of networkmanager; its BRs are the netfilter/atm
+# stack. arpd uses lmdb instead of Berkeley DB.
+libmnl
+libnl3
+libnfnetlink
+libnftnl
+libnetfilter_conntrack
+libpcap:-bluetooth
+iptables
+linux-atm
+lmdb
+iproute2
+libndp
+dosfstools
+cloud-utils
+cloud-initramfs-tools
+networkmanager:bootstrap
