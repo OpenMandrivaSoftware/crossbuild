@@ -5,6 +5,7 @@
 # growpart (Requires: cloud-utils-growpart).
 # networkmanager:bootstrap skips optional plugin stacks we do not
 # bootstrap (ppp/wwan/bluetooth/team/ovs/gir/docs).
+# jansson is still required: meson enables nm-cloud-setup by default.
 # iproute2 is Requires of networkmanager; its BRs are the netfilter/atm
 # stack. arpd uses lmdb instead of Berkeley DB.
 libmnl
@@ -21,4 +22,5 @@ libndp
 dosfstools
 cloud-utils
 cloud-initramfs-tools
+jansson
 networkmanager:bootstrap
