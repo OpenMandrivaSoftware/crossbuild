@@ -1,5 +1,12 @@
 # Cross-compile environment for rpmbuild --target.
-# Loaded by build-package.sh. Fold into distro-release later.
+# create-omv-env.sh installs this to /etc/rpm/macros.d (rpmbuild
+# --load does not override that copy). Fold into distro-release later.
+
+# distro-release already treats loongarch64 as EFI in macros.efi-srpm
+# (%_efi / %efi_arch), but the OMV %efi arch list (used by ExclusiveArch
+# and %ifarch) still ships without it. Override until that package is
+# rebuilt. Same one-line change is in distro-release's macros.
+%efi %{ix86} %{x86_64} %{aarch64} %{riscv} %{loongarch64} ia64
 
 # Compiler --sysroot and the place target *-devel files are installed.
 # Official toolchains and the bootstrap sysroot both live here; usr and
@@ -10,9 +17,22 @@
 # Must stay valid shell (no %%if) so it works inside %%__spec_*_pre.
 # No-op when not cross-compiling. Does not put the sysroot bindir on
 # PATH -- target python/etc. are the wrong ELF for the build host.
+# Out-of-tree %%configure (BuildSystem: autotools) cds into
+# _OMV_rpm_build before its config.guess/config.sub refresh, so
+# the source copies stay stale. Host gnu-config knows new triples.
 %set_cross_env \
   if [ %{cross_compiling} -ne 0 ]; then \
     _cross_root="%{_cross_sysroot}" ; \
+    _cfg_root="${RPM_BUILD_DIR:-%{_builddir}}" ; \
+    if [ -d "$_cfg_root" ]; then \
+      for _cb in config.guess config.sub ; do \
+        [ -f "/usr/bin/$_cb" ] || continue ; \
+        find "$_cfg_root" -name "$_cb" 2>/dev/null | while read _cs ; do \
+          [ "$_cs" -ef "/usr/bin/$_cb" ] && continue ; \
+          /bin/cp -f "/usr/bin/$_cb" "$_cs" ; \
+        done ; \
+      done ; \
+    fi ; \
     if [ -d "$_cross_root" ]; then \
       CC="${CC:-%__cc}" ; export CC ; \
       CXX="${CXX:-%__cxx}" ; export CXX ; \
@@ -25,10 +45,9 @@
       export PKG_CONFIG_FDO_SYSROOT_RULES="${PKG_CONFIG_FDO_SYSROOT_RULES:-1}" ; \
       export QEMU_LD_PREFIX="${QEMU_LD_PREFIX:-$_cross_root}" ; \
       _pc_root="$_cross_root/sys-root%{_libdir}/pkgconfig" ; \
-      case ":$PKG_CONFIG_PATH:" in \
-        *":$_pc_root:"*) ;; \
-        *) PKG_CONFIG_PATH="$_pc_root:$_cross_root/sys-root%{_datadir}/pkgconfig:%{_libdir}/pkgconfig:%{_datadir}/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}" ; export PKG_CONFIG_PATH ;; \
-      esac ; \
+      _pc_data="$_cross_root/sys-root%{_datadir}/pkgconfig" ; \
+      export PKG_CONFIG_LIBDIR="$_pc_root:$_pc_data" ; \
+      export PKG_CONFIG_PATH="$_pc_root:$_pc_data" ; \
       _py_config="" ; \
       for _pc in "$_cross_root"%{_bindir}/python3*-config "$_cross_root"%{_bindir}/python-config ; do \
         if [ -x "$_pc" ]; then _py_config="$_pc" ; break ; fi ; \

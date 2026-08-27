@@ -28,6 +28,13 @@ set -e
 cd `dirname $0`
 DIR=`pwd`
 
+# find-debuginfo LTO rewrite of static .a files needs disk, not tmpfs /tmp
+if [ -z "$TMPDIR" ] || [ "$TMPDIR" = /tmp ]; then
+	TMPDIR="$DIR/.tmp"
+	mkdir -p "$TMPDIR"
+	export TMPDIR
+fi
+
 mkdir -p packages
 cd packages
 for i in "$@"; do

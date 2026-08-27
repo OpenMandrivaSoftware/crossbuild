@@ -124,6 +124,12 @@ echo "Sets: $SETS"
 
 keepsudoalive
 
+# rpmbuild --load does not override /etc/rpm/macros.d. Install the
+# tree copy so %%set_cross_env (config.sub refresh, sysroot env)
+# is what --target builds actually run.
+sudo cp -f "$SCRIPTDIR/macros.cross-pkgconfig" /etc/rpm/macros.d/macros.cross-pkgconfig
+sudo cp -f "$SCRIPTDIR/macros.cross-pkgconfig" /etc/rpm/macros.cross-pkgconfig
+
 if $WIPE; then
 	rpm -qa |grep cross-${FULLTARGET} |xargs sudo dnf -y erase || :
 	sudo rm -rf /usr/${FULLTARGET}
