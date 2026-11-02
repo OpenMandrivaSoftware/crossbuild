@@ -17,6 +17,10 @@ lz4
 zstd
 file
 libarchive
+# Host documentation generator. Several specs --enable-gtk-doc and
+# detect it via gtk-doc.pc; that .pc is not visible unless the
+# noarch package is in the sysroot.
+gtk-doc
 libtirpc:-gss
 libnsl
 libxcrypt
@@ -78,6 +82,10 @@ icu
 libxml2:-pgo:-python
 wayland
 wayland-protocols-devel
+# libxkbcommon 1.13 reads xkeyboard-config.pc for extension-path
+# defines; without them xkbcli-info fails to compile.
+xkeyboard-config
+xkeyboard-config-devel
 libxkbcommon
 glib2.0:-pgo:-gtkdoc:-introspection:-systemtap:-sysprof
 libseccomp
@@ -127,8 +135,6 @@ harfbuzz:-gir
 freetype:-rsvg
 libxfont2
 kernel:-desktop:-desktop_gcc:-server_gcc
-xkeyboard-config
-xkeyboard-config-devel
 crontabs
 libedit
 python-six
