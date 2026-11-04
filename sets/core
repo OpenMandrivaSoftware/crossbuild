@@ -192,7 +192,6 @@ ppl
 shared-mime-info
 go-srpm-macros
 python-packaging
-python-pkg-resources
 rust-srpm-macros
 rpmlint
 spec-helper
