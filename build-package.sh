@@ -66,7 +66,38 @@ for i in "$@"; do
 	# --target before --load: otherwise %%cross_compiling is baked as 0
 	# while the macros file is parsed.
 	echo "Running: rpmbuild --target $RPMTARGET --load $DIR/macros.cross-pkgconfig -ba --without uclibc $EXTRA_RPMFLAGS --define \"_sourcedir `pwd`\" --define \"_builddir `pwd`/BUILD\" --define \"_rpmdir `pwd`/RPMS\" --define \"_srpmdir `pwd`/SRPMS\" *.spec"
-	(set -o pipefail && rpmbuild --target $RPMTARGET --load "$DIR/macros.cross-pkgconfig" -ba --nodeps --without uclibc $EXTRA_RPMFLAGS --define "_sourcedir `pwd`" --define "_builddir `pwd`/BUILD" --define "_rpmdir `pwd`/RPMS" --define "_srpmdir `pwd`/SRPMS" *.spec 2>&1 |tee build.log)
+	# Log through a file, not a pipe into tee. A build step that
+	# backgrounds a process on inherited stdout (mkcomposecache's
+	# xbiff) holds a pipe open, tee never sees EOF, and this script
+	# sits there after the packages have already been written.
+	# The log has to exist before tail starts: the redirect is applied
+	# in the rpmbuild child, and this shell continues as soon as that
+	# child is forked. tail otherwise exits with "no files remaining"
+	# and the live log is lost.
+	(
+		set +e
+		: > build.log
+		rpmbuild --target $RPMTARGET --load "$DIR/macros.cross-pkgconfig" -ba --nodeps --without uclibc $EXTRA_RPMFLAGS --define "_sourcedir `pwd`" --define "_builddir `pwd`/BUILD" --define "_rpmdir `pwd`/RPMS" --define "_srpmdir `pwd`/SRPMS" *.spec >>build.log 2>&1 &
+		rpid=$!
+		tail -n +1 --pid="$rpid" -f build.log &
+		tpid=$!
+		wait "$rpid"
+		rc=$?
+		# tail --pid should exit on its own. A zombie still answers
+		# kill -0, so check /proc and do not sleep once tail is done.
+		# Bound the wait so a follower cannot wedge the driver the way
+		# the tee pipe did.
+		i=0
+		while [ "$i" -lt 5 ]; do
+			[ -d "/proc/$tpid" ] || break
+			grep -q '^State:[[:space:]]*Z' "/proc/$tpid/status" 2>/dev/null && break
+			sleep 1
+			i=$((i+1))
+		done
+		kill "$tpid" 2>/dev/null
+		wait "$tpid"
+		exit "$rc"
+	)
 	EXITCODE=$?
 	cd ..
 done

@@ -260,7 +260,7 @@ libpciaccess
 xlibre
 perl-Module-Build
 boost
-systemtap:-avahi:-java
+systemtap:-avahi:-java:-libvirt
 python-parsing
 filesystem
 rgb
